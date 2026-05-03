@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean Code Study</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e2a;
+    --border: #252a38;
+    --text: #d4daf0;
+    --muted: #5a6280;
+    --accent-red: #ff4d6d;
+    --accent-green: #39d98a;
+    --accent-blue: #4d9fff;
+    --accent-yellow: #ffcc00;
+    --accent-purple: #a78bfa;
+    --font-code: 'JetBrains Mono', monospace;
+    --font-ui: 'Syne', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+  }
+
+  header {
+    padding: 56px 48px 40px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .header-tag {
+    font-family: var(--font-code);
+    font-size: 11px;
+    color: var(--accent-blue);
+    background: rgba(77,159,255,0.1);
+    border: 1px solid rgba(77,159,255,0.25);
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 20px;
+  }
+  header h1 {
+    font-size: 44px;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  header h1 span { color: var(--accent-blue); }
+  header p {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.6;
+    max-width: 480px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    padding: 40px 48px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .chapter-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color .2s, transform .2s, background .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .chapter-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--card-accent, var(--accent-blue));
+    opacity: 0;
+    transition: opacity .2s;
+  }
+  .chapter-card:hover {
+    border-color: var(--card-accent, var(--accent-blue));
+    background: var(--surface2);
+    transform: translateY(-2px);
+  }
+  .chapter-card:hover::before { opacity: 1; }
+
+  .card-ch {
+    font-family: var(--font-code);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .card-title {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .card-title span { color: var(--card-accent, var(--accent-blue)); }
+  .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    flex: 1;
+  }
+  .card-topics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .topic-tag {
+    font-family: var(--font-code);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    background: var(--surface2);
+    color: var(--muted);
+    border: 1px solid var(--border);
+    letter-spacing: 0.03em;
+  }
+  .card-arrow {
+    font-size: 18px;
+    color: var(--card-accent, var(--accent-blue));
+    align-self: flex-end;
+    opacity: 0;
+    transition: opacity .2s, transform .2s;
+    transform: translateX(-4px);
+  }
+  .chapter-card:hover .card-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  footer {
+    padding: 32px 48px;
+    border-top: 1px solid var(--border);
+    max-width: 1100px;
+    margin: 0 auto;
+    font-family: var(--font-code);
+    font-size: 12px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-tag">Clean Code · Study Notes</div>
+  <h1>Clean <span>Code</span><br>Study</h1>
+  <p>Robert C. Martin의 Clean Code를 읽으며 인상적인 내용과 어려운 개념을 정리한 학습 자료입니다.</p>
+</header>
+
+<div class="grid">
+
+  <a href="ch03.html" class="chapter-card" style="--card-accent: #a78bfa;">
+    <div class="card-ch">Ch.03</div>
+    <div class="card-title"><span>Functions</span></div>
+    <div class="card-desc">Switch문의 OCP 위반, Flag 인수의 문제, Side Effect, Try-Catch 분리까지 — 좋은 함수를 만드는 원칙.</div>
+    <div class="card-topics">
+      <span class="topic-tag">Switch & Factory</span>
+      <span class="topic-tag">Flag 인수</span>
+      <span class="topic-tag">Side Effects</span>
+      <span class="topic-tag">Try-Catch</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="ch04.html" class="chapter-card" style="--card-accent: #4d9fff;">
+    <div class="card-ch">Ch.04</div>
+    <div class="card-title"><span>Comments</span></div>
+    <div class="card-desc">주석보다 코드로 의도를 표현하라. 좋은 이름 하나가 주석 여러 줄을 대체한다.</div>
+    <div class="card-topics">
+      <span class="topic-tag">코드로 의도 표현</span>
+      <span class="topic-tag">Self-documenting</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="ch05.html" class="chapter-card" style="--card-accent: #39d98a;">
+    <div class="card-ch">Ch.05</div>
+    <div class="card-title">형식: <span>상수의 위치</span></div>
+    <div class="card-desc">상수는 하위 유틸 함수에 하드코딩하지 말고, 호출하는 상위 함수에서 넘겨주는 것이 더 명확하다.</div>
+    <div class="card-topics">
+      <span class="topic-tag">기본값 패턴</span>
+      <span class="topic-tag">책임 분리</span>
+      <span class="topic-tag">재사용성</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="ch06.html" class="chapter-card" style="--card-accent: #ffcc00;">
+    <div class="card-ch">Ch.06</div>
+    <div class="card-title">객체와 <span>자료 구조</span></div>
+    <div class="card-desc">자료 추상화, 전략 패턴, OOP vs 절차적 트레이드오프, Visitor Pattern, 디미터 법칙까지.</div>
+    <div class="card-topics">
+      <span class="topic-tag">자료 추상화</span>
+      <span class="topic-tag">Strategy</span>
+      <span class="topic-tag">Visitor</span>
+      <span class="topic-tag">디미터 법칙</span>
+      <span class="topic-tag">DTO</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="ch07.html" class="chapter-card" style="--card-accent: #ff4d6d;">
+    <div class="card-ch">Ch.07</div>
+    <div class="card-title">오류 <span>처리</span></div>
+    <div class="card-desc">외부 API 예외 감싸기와 Martin Fowler의 Special Case Pattern으로 깔끔한 오류 처리.</div>
+    <div class="card-topics">
+      <span class="topic-tag">예외 감싸기</span>
+      <span class="topic-tag">Special Case</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="ch10.html" class="chapter-card" style="--card-accent: #a78bfa;">
+    <div class="card-ch">Ch.10</div>
+    <div class="card-title">Clean <span>Classes</span></div>
+    <div class="card-desc">클래스 응집도의 의미와 측정법, SQL 클래스 분리 예시로 보는 SRP와 OCP 적용.</div>
+    <div class="card-topics">
+      <span class="topic-tag">응집도</span>
+      <span class="topic-tag">SRP</span>
+      <span class="topic-tag">클래스 분리</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="ch11.html" class="chapter-card" style="--card-accent: #39d98a;">
+    <div class="card-ch">Ch.11</div>
+    <div class="card-title">Clean <span>Systems</span></div>
+    <div class="card-desc">시스템 제작과 사용의 분리, DI, 컨테이너 종속의 문제, 횡단 관심사와 AOP.</div>
+    <div class="card-topics">
+      <span class="topic-tag">생성/사용 분리</span>
+      <span class="topic-tag">DI</span>
+      <span class="topic-tag">AOP</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="ch12.html" class="chapter-card" style="--card-accent: #4d9fff;">
+    <div class="card-ch">Ch.12</div>
+    <div class="card-title"><span>창발적</span> 설계</div>
+    <div class="card-desc">단순한 설계 4원칙, 중복 제거에서 드러나는 SRP 위반, Template Method Pattern.</div>
+    <div class="card-topics">
+      <span class="topic-tag">4가지 원칙</span>
+      <span class="topic-tag">중복 제거</span>
+      <span class="topic-tag">Template Method</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+  <a href="ch13.html" class="chapter-card" style="--card-accent: #ff4d6d;">
+    <div class="card-ch">Ch.13</div>
+    <div class="card-title"><span>동시성</span></div>
+    <div class="card-desc">동시성 미신과 사실, 방어 원칙, Producer-Consumer·Readers-Writers·Dining Philosophers 패턴.</div>
+    <div class="card-topics">
+      <span class="topic-tag">방어 원칙</span>
+      <span class="topic-tag">Producer-Consumer</span>
+      <span class="topic-tag">Readers-Writers</span>
+      <span class="topic-tag">Dining Philosophers</span>
+    </div>
+    <div class="card-arrow">→</div>
+  </a>
+
+</div>
+
+<footer>
+  kinderrookie · clean-code-study
+</footer>
+
+</body>
+</html>
