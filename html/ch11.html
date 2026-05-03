@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Clean Code Ch.11 — 시스템</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0d0f14;
+                --surface: #13161e;
+                --surface2: #1a1e2a;
+                --border: #252a38;
+                --text: #d4daf0;
+                --muted: #5a6280;
+                --accent-red: #ff4d6d;
+                --accent-green: #39d98a;
+                --accent-blue: #4d9fff;
+                --accent-yellow: #ffcc00;
+                --accent-purple: #a78bfa;
+                --font-code: "JetBrains Mono", monospace;
+                --font-ui: "Syne", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font-ui);
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                padding: 40px 48px 32px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: flex-end;
+                gap: 24px;
+                background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+            }
+            .chapter-tag {
+                font-family: var(--font-code);
+                font-size: 11px;
+                color: var(--accent-blue);
+                background: rgba(77, 159, 255, 0.1);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+                padding: 4px 10px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            header h1 {
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            header h1 span {
+                color: var(--accent-blue);
+            }
+
+            /* ── Nav Tabs ── */
+            nav {
+                display: flex;
+                gap: 0;
+                padding: 0 48px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+            }
+            nav button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 16px 20px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition:
+                    color 0.2s,
+                    border-color 0.2s;
+                letter-spacing: 0.02em;
+            }
+            nav button.active {
+                color: var(--text);
+                border-bottom-color: var(--accent-blue);
+            }
+            nav button:hover:not(.active) {
+                color: var(--text);
+            }
+
+            /* ── Content ── */
+            .page {
+                display: none;
+                padding: 40px 48px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .page.active {
+                display: block;
+                animation: fadeUp 0.3s ease;
+            }
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ── Section Header ── */
+            .section-header {
+                margin-bottom: 32px;
+            }
+            .section-header h2 {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                margin-bottom: 8px;
+            }
+            .section-header p {
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            /* ── Cards ── */
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .badge {
+                font-family: var(--font-code);
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            .badge-bad {
+                background: rgba(255, 77, 109, 0.15);
+                color: var(--accent-red);
+                border: 1px solid rgba(255, 77, 109, 0.3);
+            }
+            .badge-good {
+                background: rgba(57, 217, 138, 0.12);
+                color: var(--accent-green);
+                border: 1px solid rgba(57, 217, 138, 0.25);
+            }
+            .badge-info {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+            }
+            .badge-warn {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+                border: 1px solid rgba(255, 204, 0, 0.25);
+            }
+
+            /* ── Code Block ── */
+            pre {
+                font-family: var(--font-code);
+                font-size: 12.5px;
+                line-height: 1.7;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .kw {
+                color: #c792ea;
+            }
+            .fn {
+                color: #82aaff;
+            }
+            .str {
+                color: #c3e88d;
+            }
+            .cm {
+                color: #546e7a;
+                font-style: italic;
+            }
+            .tp {
+                color: #ffcb6b;
+            }
+            .op {
+                color: #89ddff;
+            }
+            .num {
+                color: #f78c6c;
+            }
+            .highlight {
+                background: rgba(255, 77, 109, 0.12);
+                border-left: 2px solid var(--accent-red);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+            .highlight-good {
+                background: rgba(57, 217, 138, 0.08);
+                border-left: 2px solid var(--accent-green);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+
+            /* ── Two Column ── */
+            .two-col {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .two-col {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ── Concept Pill ── */
+            .concept-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 16px;
+            }
+            .concept-pill {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid;
+                cursor: default;
+                transition: transform 0.15s;
+            }
+            .concept-pill:hover {
+                transform: scale(1.05);
+            }
+            .pill-red {
+                color: var(--accent-red);
+                border-color: rgba(255, 77, 109, 0.35);
+                background: rgba(255, 77, 109, 0.08);
+            }
+            .pill-blue {
+                color: var(--accent-blue);
+                border-color: rgba(77, 159, 255, 0.35);
+                background: rgba(77, 159, 255, 0.08);
+            }
+            .pill-green {
+                color: var(--accent-green);
+                border-color: rgba(57, 217, 138, 0.35);
+                background: rgba(57, 217, 138, 0.08);
+            }
+            .pill-purple {
+                color: var(--accent-purple);
+                border-color: rgba(167, 139, 250, 0.35);
+                background: rgba(167, 139, 250, 0.08);
+            }
+
+            /* ── Rule Box ── */
+            .rule-box {
+                border-left: 3px solid var(--accent-blue);
+                padding: 14px 18px;
+                background: rgba(77, 159, 255, 0.06);
+                border-radius: 0 8px 8px 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                margin: 16px 0;
+            }
+            .rule-box.warn {
+                border-color: var(--accent-yellow);
+                background: rgba(255, 204, 0, 0.06);
+            }
+            .rule-box.danger {
+                border-color: var(--accent-red);
+                background: rgba(255, 77, 109, 0.06);
+            }
+            .rule-box.success {
+                border-color: var(--accent-green);
+                background: rgba(57, 217, 138, 0.06);
+            }
+            .rule-box strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Arrow ── */
+            .arrow-flow {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 20px 0;
+                flex-wrap: wrap;
+            }
+            .flow-step {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+                min-width: 120px;
+            }
+            .flow-arrow {
+                color: var(--muted);
+                font-size: 18px;
+            }
+
+            /* ── Pattern Diagram ── */
+            .diagram {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 28px;
+                margin: 20px 0;
+            }
+            .diagram-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 20px;
+                font-family: var(--font-code);
+            }
+            .class-box {
+                display: inline-flex;
+                flex-direction: column;
+                border: 1px solid;
+                border-radius: 6px;
+                overflow: hidden;
+                font-family: var(--font-code);
+                font-size: 12px;
+                min-width: 160px;
+            }
+            .class-header {
+                padding: 8px 14px;
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+            }
+            .class-body {
+                padding: 10px 14px;
+                line-height: 1.9;
+            }
+            .class-abstract {
+                border-color: var(--accent-purple);
+            }
+            .class-abstract .class-header {
+                background: rgba(167, 139, 250, 0.15);
+                color: var(--accent-purple);
+            }
+            .class-concrete {
+                border-color: var(--accent-blue);
+            }
+            .class-concrete .class-header {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+            }
+            .class-factory {
+                border-color: var(--accent-yellow);
+            }
+            .class-factory .class-header {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+            }
+
+            .uml-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .uml-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .uml-arrow {
+                display: flex;
+                align-items: center;
+                padding-top: 28px;
+                color: var(--accent-green);
+                font-size: 22px;
+            }
+
+            /* ── Summary Card ── */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 8px;
+            }
+            .summary-item {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px;
+            }
+            .summary-item .icon {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+            .summary-item h4 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .summary-item p {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.6;
+            }
+
+            /* ── Callout ── */
+            .callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+                background: var(--surface2);
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            .callout .icon {
+                font-size: 18px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .callout p {
+                font-size: 13px;
+                line-height: 1.65;
+                color: var(--text);
+            }
+            .callout p strong {
+                color: var(--accent-yellow);
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 28px 0;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                margin: 16px 0;
+            }
+            th {
+                background: var(--surface2);
+                padding: 10px 14px;
+                text-align: left;
+                font-size: 11px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+                border-bottom: 1px solid var(--border);
+            }
+            td {
+                padding: 10px 14px;
+                border-bottom: 1px solid rgba(37, 42, 56, 0.5);
+                line-height: 1.5;
+            }
+            td strong {
+                color: var(--accent-yellow);
+            }
+            code {
+                font-family: var(--font-code);
+                font-size: 12px;
+                background: var(--surface2);
+                padding: 2px 6px;
+                border-radius: 3px;
+            }
+            .pill-yellow {
+                color: var(--accent-yellow);
+                border-color: rgba(255, 204, 0, 0.35);
+                background: rgba(255, 204, 0, 0.08);
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div class="chapter-tag">Clean Code · Ch.11</div>
+            </div>
+            <h1>Clean <span>Systems</span></h1>
+        </header>
+
+        <nav>
+            <button class="active" onclick="showPage(0)">
+                ① 생성/사용 분리
+            </button>
+            <button onclick="showPage(1)">② Scaling 문제</button>
+            <button onclick="showPage(2)">③ Cross-cutting / AOP</button>
+            <button onclick="showPage(3)">④ 요약</button>
+        </nav>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 0: 생성/사용 분리
+══════════════════════════════════════════════════ -->
+        <div class="page active" id="page0">
+            <div class="section-header">
+                <h2>시스템 제작과 사용을 분리하라</h2>
+                <p>
+                    애플리케이션 객체를 제작하고 의존성을 연결하는 과정은 별도로
+                    분리되어야 한다.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-bad">❌ Lazy Init 안티패턴</span>
+                </div>
+                <pre><span class="kw">public</span> <span class="tp">Service</span> <span class="fn">getService</span>() {
+    <span class="kw">if</span> (service == <span class="kw">null</span>)
+<span class="highlight">        service = <span class="kw">new</span> <span class="fn">MyServiceImpl</span>(...);</span>
+    <span class="kw">return</span> service;
+}</pre>
+
+                <div class="callout">
+                    <span class="icon">🔗</span>
+                    <p>
+                        <strong>구현에 직접 의존:</strong> getService()가
+                        MyServiceImpl의 생성자 인수에 의존한다.
+                    </p>
+                </div>
+                <div class="callout">
+                    <span class="icon">🧪</span>
+                    <p>
+                        <strong>테스트 어려움:</strong> service가 null인 경우와
+                        아닌 경우를 모두 테스트해야 한다.
+                    </p>
+                </div>
+                <div class="callout">
+                    <span class="icon">🌀</span>
+                    <p>
+                        <strong>책임 혼재:</strong> 설정 로직과 실행 로직이 한
+                        메서드에 섞여 있다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rule-box warn">
+                <strong>원칙 —</strong> 설정 논리는 일반 실행 논리와 분리해야
+                한다. 시작 단계라는 관심사를 분리하라.
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info">방법 1: Main 분리</span>
+                </div>
+                <div class="callout">
+                    <span class="icon">🏗️</span>
+                    <p>
+                        생성 코드는
+                        <strong>main이나 main이 호출하는 모듈</strong>로 옮기고,
+                        나머지 시스템은 모든 객체가 생성되었다고 가정한다.
+                        시스템의 나머지는 객체 생성 과정을 전혀 모른다.
+                    </p>
+                </div>
+                <div class="arrow-flow">
+                    <div
+                        class="flow-step"
+                        style="
+                            border-color: var(--accent-blue);
+                            color: var(--accent-blue);
+                        "
+                    >
+                        main()
+                    </div>
+                    <div class="flow-arrow">→ 객체 생성 →</div>
+                    <div class="flow-step">Application</div>
+                    <div class="flow-arrow">→ 사용</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info">방법 2: Factory 분리</span>
+                </div>
+                <div class="callout">
+                    <span class="icon">🏭</span>
+                    <p>
+                        객체가 <strong>생성되는 시점</strong>을 어플리케이션이
+                        결정하는 기법. 어플리케이션은 언제 만들지는 알지만
+                        구체적인 방법은 모른다.
+                    </p>
+                </div>
+                <div class="arrow-flow">
+                    <div class="flow-step">App</div>
+                    <div class="flow-arrow">→ Factory.Create() →</div>
+                    <div
+                        class="flow-step"
+                        style="
+                            border-color: var(--accent-yellow);
+                            color: var(--accent-yellow);
+                        "
+                    >
+                        Object
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">방법 3: 의존성 주입 DI</span>
+                </div>
+                <pre><span class="cm">// ❌ 직접 생성</span>
+<span class="kw">public class</span> <span class="tp">OrderService</span> {
+    <span class="kw">private readonly</span> <span class="tp">IPaymentGateway</span> _gateway = <span class="kw">new</span> <span class="fn">StripeGateway</span>();
+}
+
+<span class="cm">// ✅ DI — 생성은 컨테이너가</span>
+<span class="kw">public class</span> <span class="tp">OrderService</span> {
+    <span class="kw">private readonly</span> <span class="tp">IPaymentGateway</span> _gateway;
+<span class="highlight-good">    <span class="kw">public</span> <span class="fn">OrderService</span>(<span class="tp">IPaymentGateway</span> gateway) {
+        _gateway = gateway;
+    }</span>
+}</pre>
+                <div class="rule-box success">
+                    DI 컨테이너가 요청이 들어올 때 필요한 객체를 만들고 의존성을
+                    설정하여 반환한다.
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 1: Scaling 문제
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page1">
+            <div class="section-header">
+                <h2>관심사 분리와 Scaling</h2>
+                <p>컨테이너에 종속된 코드는 테스트도 확장도 어렵다.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-bad"
+                        >❌ EJB-style — 컨테이너 종속</span
+                    >
+                </div>
+                <pre><span class="kw">public class</span> <span class="tp">Bank</span> : <span class="tp">IBank</span>
+{
+    <span class="kw">public void</span> <span class="fn">AddAccount</span>(<span class="tp">AccountDTO</span> accountDTO)
+    {
+        <span class="cm">// ⚠️ JNDI lookup 같은 역할 (직접 서비스 탐색)</span>
+        <span class="kw">var</span> accountService = <span class="kw">new</span> <span class="fn">AccountServiceFactory</span>().<span class="fn">Create</span>();
+        <span class="kw">var</span> account = accountService.<span class="fn">Create</span>(accountDTO);
+        _accounts.<span class="fn">Add</span>(account);
+    }
+
+<span class="highlight">    <span class="cm">// ⚠️ 이상한 생명주기 메서드들</span>
+    <span class="kw">public void</span> <span class="fn">SetEntityContext</span>(<span class="kw">object</span> ctx) { }
+    <span class="kw">public void</span> <span class="fn">Activate</span>() { }
+    <span class="kw">public void</span> <span class="fn">Passivate</span>() { }
+    <span class="kw">public void</span> <span class="fn">Load</span>() { }
+    <span class="kw">public void</span> <span class="fn">Store</span>() { }
+    <span class="kw">public void</span> <span class="fn">Remove</span>() { }</span>
+}</pre>
+
+                <div class="callout">
+                    <span class="icon">🔗</span>
+                    <p>
+                        <strong>컨테이너 종속:</strong> 비즈니스 로직이
+                        컨테이너에 타이트하게 연결되어 있다. 컨테이너가 제공해야
+                        하는 인터페이스를 반드시 구현해야 한다.
+                    </p>
+                </div>
+                <div class="callout">
+                    <span class="icon">🧪</span>
+                    <p>
+                        <strong>테스트/상속 어려움:</strong> 개발자가 비즈니스
+                        로직과 관계없는 코드까지 억지로 작성해야 한다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rule-box success">
+                <strong>이상적인 방향 —</strong> POJO(Plain Old Java/C#
+                Object)처럼 순수한 비즈니스 로직만 담고, 컨테이너 의존성은
+                프레임워크가 처리하게 위임하라.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 2: Cross-cutting / AOP
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page2">
+            <div class="section-header">
+                <h2>횡단 관심사와 AOP</h2>
+                <p>
+                    persistence, logging, security 등은 코드 곳곳에 흩어진다.
+                    AOP로 모듈화하라.
+                </p>
+            </div>
+
+            <div class="rule-box warn">
+                <strong>Cross-cutting 관심사란 —</strong> persistence, logging,
+                transaction 등의 동작은 객체 경계를 넘나들며 시스템 전반에
+                산재하는 경향이 있다. 원칙적으로는 모듈화 가능하지만, 현실은
+                코드 곳곳에 중복된다.
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad"
+                            >❌ AOP 없이 — logging 중복</span
+                        >
+                    </div>
+                    <pre><span class="kw">public class</span> <span class="tp">OrderService</span> {
+    <span class="kw">public void</span> <span class="fn">PlaceOrder</span>(<span class="tp">Order</span> order) {
+<span class="highlight">        _logger.<span class="fn">Log</span>(<span class="str">"PlaceOrder called"</span>);  <span class="cm">// 중복 관심사</span>
+        _transaction.<span class="fn">Begin</span>();              <span class="cm">// 중복 관심사</span></span>
+        <span class="cm">// 실제 비즈니스 로직</span>
+        _orderRepo.<span class="fn">Save</span>(order);
+<span class="highlight">        _transaction.<span class="fn">Commit</span>();
+        _logger.<span class="fn">Log</span>(<span class="str">"PlaceOrder completed"</span>);</span>
+    }
+}</pre>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-good"
+                            >✅ AOP — Attribute 기반</span
+                        >
+                    </div>
+                    <pre><span class="highlight-good">[<span class="tp">Log</span>]
+[<span class="tp">Transactional</span>]</span>
+<span class="kw">public void</span> <span class="fn">PlaceOrder</span>(<span class="tp">Order</span> order) {
+    <span class="cm">// 순수 비즈니스 로직만</span>
+    _orderRepo.<span class="fn">Save</span>(order);
+}</pre>
+                </div>
+            </div>
+
+            <div class="callout">
+                <span class="icon">🎯</span>
+                <p>
+                    Persistency를 예시로 들면,
+                    <strong>persistency를 적용할 객체와 속성을 선언</strong>한
+                    후 영속성 책임을 프레임워크로 위임한다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">🔧</span>
+                <p>
+                    <strong>AOP 프레임워크</strong>는 해당 코드에 영향을 미치지
+                    않는 상태로 동작 방식을 변경한다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">✂️</span>
+                <p>
+                    관심사의 분리 →
+                    <strong>각 모듈은 자신의 책임만</strong> 집중하게 된다.
+                </p>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 3: 요약
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page3">
+            <div class="section-header">
+                <h2>Ch.11 핵심 요약</h2>
+                <p>시스템을 깨끗하게 유지하는 네 가지 핵심 전략</p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="icon">🏗️</div>
+                    <h4 style="color: var(--accent-blue)">생성/사용 분리</h4>
+                    <p>
+                        시스템 시작과 실행은 다른 관심사. main에서 구성, 앱에서
+                        사용.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">💉</div>
+                    <h4 style="color: var(--accent-green)">의존성 주입</h4>
+                    <p>
+                        객체 생성 책임을 DI 컨테이너에 위임하라. 코드는 추상에만
+                        의존.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🔌</div>
+                    <h4 style="color: var(--accent-purple)">POJO 유지</h4>
+                    <p>
+                        비즈니스 로직을 컨테이너와 분리하라. 테스트와 확장이
+                        쉬워진다.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🔀</div>
+                    <h4 style="color: var(--accent-yellow)">
+                        AOP로 횡단 관심사
+                    </h4>
+                    <p>
+                        logging, transaction은 비즈니스 코드가 아니다. AOP로
+                        분리하라.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function showPage(idx) {
+                document.querySelectorAll(".page").forEach((p, i) => {
+                    p.classList.toggle("active", i === idx);
+                });
+                document.querySelectorAll("nav button").forEach((b, i) => {
+                    b.classList.toggle("active", i === idx);
+                });
+            }
+        </script>
+    </body>
+</html>

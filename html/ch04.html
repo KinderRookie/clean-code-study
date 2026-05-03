@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Clean Code Ch.04 — 주석</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0d0f14;
+                --surface: #13161e;
+                --surface2: #1a1e2a;
+                --border: #252a38;
+                --text: #d4daf0;
+                --muted: #5a6280;
+                --accent-red: #ff4d6d;
+                --accent-green: #39d98a;
+                --accent-blue: #4d9fff;
+                --accent-yellow: #ffcc00;
+                --accent-purple: #a78bfa;
+                --font-code: "JetBrains Mono", monospace;
+                --font-ui: "Syne", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font-ui);
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                padding: 40px 48px 32px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: flex-end;
+                gap: 24px;
+                background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+            }
+            .chapter-tag {
+                font-family: var(--font-code);
+                font-size: 11px;
+                color: var(--accent-blue);
+                background: rgba(77, 159, 255, 0.1);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+                padding: 4px 10px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            header h1 {
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            header h1 span {
+                color: var(--accent-blue);
+            }
+
+            /* ── Nav Tabs ── */
+            nav {
+                display: flex;
+                gap: 0;
+                padding: 0 48px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+            }
+            nav button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 16px 20px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition:
+                    color 0.2s,
+                    border-color 0.2s;
+                letter-spacing: 0.02em;
+            }
+            nav button.active {
+                color: var(--text);
+                border-bottom-color: var(--accent-blue);
+            }
+            nav button:hover:not(.active) {
+                color: var(--text);
+            }
+
+            /* ── Content ── */
+            .page {
+                display: none;
+                padding: 40px 48px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .page.active {
+                display: block;
+                animation: fadeUp 0.3s ease;
+            }
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ── Section Header ── */
+            .section-header {
+                margin-bottom: 32px;
+            }
+            .section-header h2 {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                margin-bottom: 8px;
+            }
+            .section-header p {
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            /* ── Cards ── */
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .badge {
+                font-family: var(--font-code);
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            .badge-bad {
+                background: rgba(255, 77, 109, 0.15);
+                color: var(--accent-red);
+                border: 1px solid rgba(255, 77, 109, 0.3);
+            }
+            .badge-good {
+                background: rgba(57, 217, 138, 0.12);
+                color: var(--accent-green);
+                border: 1px solid rgba(57, 217, 138, 0.25);
+            }
+            .badge-info {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+            }
+            .badge-warn {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+                border: 1px solid rgba(255, 204, 0, 0.25);
+            }
+
+            /* ── Code Block ── */
+            pre {
+                font-family: var(--font-code);
+                font-size: 12.5px;
+                line-height: 1.7;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .kw {
+                color: #c792ea;
+            }
+            .fn {
+                color: #82aaff;
+            }
+            .str {
+                color: #c3e88d;
+            }
+            .cm {
+                color: #546e7a;
+                font-style: italic;
+            }
+            .tp {
+                color: #ffcb6b;
+            }
+            .op {
+                color: #89ddff;
+            }
+            .num {
+                color: #f78c6c;
+            }
+            .highlight {
+                background: rgba(255, 77, 109, 0.12);
+                border-left: 2px solid var(--accent-red);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+            .highlight-good {
+                background: rgba(57, 217, 138, 0.08);
+                border-left: 2px solid var(--accent-green);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+
+            /* ── Two Column ── */
+            .two-col {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .two-col {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ── Concept Pill ── */
+            .concept-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 16px;
+            }
+            .concept-pill {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid;
+                cursor: default;
+                transition: transform 0.15s;
+            }
+            .concept-pill:hover {
+                transform: scale(1.05);
+            }
+            .pill-red {
+                color: var(--accent-red);
+                border-color: rgba(255, 77, 109, 0.35);
+                background: rgba(255, 77, 109, 0.08);
+            }
+            .pill-blue {
+                color: var(--accent-blue);
+                border-color: rgba(77, 159, 255, 0.35);
+                background: rgba(77, 159, 255, 0.08);
+            }
+            .pill-green {
+                color: var(--accent-green);
+                border-color: rgba(57, 217, 138, 0.35);
+                background: rgba(57, 217, 138, 0.08);
+            }
+            .pill-purple {
+                color: var(--accent-purple);
+                border-color: rgba(167, 139, 250, 0.35);
+                background: rgba(167, 139, 250, 0.08);
+            }
+
+            /* ── Rule Box ── */
+            .rule-box {
+                border-left: 3px solid var(--accent-blue);
+                padding: 14px 18px;
+                background: rgba(77, 159, 255, 0.06);
+                border-radius: 0 8px 8px 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                margin: 16px 0;
+            }
+            .rule-box.warn {
+                border-color: var(--accent-yellow);
+                background: rgba(255, 204, 0, 0.06);
+            }
+            .rule-box.danger {
+                border-color: var(--accent-red);
+                background: rgba(255, 77, 109, 0.06);
+            }
+            .rule-box.success {
+                border-color: var(--accent-green);
+                background: rgba(57, 217, 138, 0.06);
+            }
+            .rule-box strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Arrow ── */
+            .arrow-flow {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 20px 0;
+                flex-wrap: wrap;
+            }
+            .flow-step {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+                min-width: 120px;
+            }
+            .flow-arrow {
+                color: var(--muted);
+                font-size: 18px;
+            }
+
+            /* ── Pattern Diagram ── */
+            .diagram {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 28px;
+                margin: 20px 0;
+            }
+            .diagram-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 20px;
+                font-family: var(--font-code);
+            }
+            .class-box {
+                display: inline-flex;
+                flex-direction: column;
+                border: 1px solid;
+                border-radius: 6px;
+                overflow: hidden;
+                font-family: var(--font-code);
+                font-size: 12px;
+                min-width: 160px;
+            }
+            .class-header {
+                padding: 8px 14px;
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+            }
+            .class-body {
+                padding: 10px 14px;
+                line-height: 1.9;
+            }
+            .class-abstract {
+                border-color: var(--accent-purple);
+            }
+            .class-abstract .class-header {
+                background: rgba(167, 139, 250, 0.15);
+                color: var(--accent-purple);
+            }
+            .class-concrete {
+                border-color: var(--accent-blue);
+            }
+            .class-concrete .class-header {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+            }
+            .class-factory {
+                border-color: var(--accent-yellow);
+            }
+            .class-factory .class-header {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+            }
+
+            .uml-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .uml-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .uml-arrow {
+                display: flex;
+                align-items: center;
+                padding-top: 28px;
+                color: var(--accent-green);
+                font-size: 22px;
+            }
+
+            /* ── Summary Card ── */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 8px;
+            }
+            .summary-item {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px;
+            }
+            .summary-item .icon {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+            .summary-item h4 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .summary-item p {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.6;
+            }
+
+            /* ── Callout ── */
+            .callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+                background: var(--surface2);
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            .callout .icon {
+                font-size: 18px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .callout p {
+                font-size: 13px;
+                line-height: 1.65;
+                color: var(--text);
+            }
+            .callout p strong {
+                color: var(--accent-yellow);
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 28px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div class="chapter-tag">Clean Code · Ch.04</div>
+            </div>
+            <h1>Clean <span>Comments</span></h1>
+        </header>
+
+        <nav>
+            <button class="active" onclick="showPage(0)">
+                ① 코드로 의도 표현
+            </button>
+            <button onclick="showPage(1)">② 요약</button>
+        </nav>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 0: 코드로 의도 표현
+══════════════════════════════════════════════════ -->
+        <div class="page active" id="page0">
+            <div class="section-header">
+                <h2>코드가 주석보다 낫다</h2>
+                <p>
+                    주석이 설명하려는 내용을 코드 자체로 표현할 수 있다면,
+                    주석을 쓰지 마라.
+                </p>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad">❌ BEFORE</span>
+                    </div>
+                    <pre><span class="highlight"><span class="cm">// 직원에게 복지 혜택이 있는지 검사한다</span>
+</span><span class="highlight"><span class="kw">if</span> ((employ.flags <span class="op">&amp;</span> HOURLY_FLAG) <span class="op">&amp;&amp;</span> employ.age <span class="op">&gt;</span> <span class="num">65</span>)
+</span></pre>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-good">✅ AFTER</span>
+                    </div>
+                    <pre><span class="highlight-good"><span class="kw">if</span> (employ.<span class="fn">isEligibleForFullBenefits</span>())
+</span></pre>
+                </div>
+            </div>
+
+            <div class="callout">
+                <span class="icon">🔍</span>
+                <p>비트 플래그 연산의 의미를 매번 기억할 필요가 없다.</p>
+            </div>
+            <div class="callout">
+                <span class="icon">📝</span>
+                <p>
+                    메서드 이름 자체가
+                    <strong>비즈니스 규칙을 표현</strong>한다. 주석이 필요 없다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">🔄</span>
+                <p>
+                    조건이 변경되면 메서드 내부만 수정하면 된다.
+                    <strong>주석은 코드와 함께 관리되지 않는다.</strong>
+                </p>
+            </div>
+
+            <div class="rule-box success">
+                <strong>핵심 원칙 —</strong> 코드는 진실만을 말한다. 주석은
+                거짓말을 할 수 있다. 코드가 업데이트돼도 주석은 남는다. 좋은
+                이름 하나가 주석 여러 줄을 대체한다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 1: 요약
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page1">
+            <div class="section-header">
+                <h2>Ch.04 핵심 원칙 요약</h2>
+                <p>주석 대신 코드로 말하기 — 네 가지 핵심</p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="icon">🏷️</div>
+                    <h4 style="color: var(--accent-blue)">
+                        이름이 모든 것을 설명한다
+                    </h4>
+                    <p>좋은 함수 이름은 주석 없이 의도를 전달한다.</p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">⚠️</div>
+                    <h4 style="color: var(--accent-red)">
+                        주석은 거짓말이 된다
+                    </h4>
+                    <p>코드는 변해도 주석은 그대로 남아 혼란을 준다.</p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🧩</div>
+                    <h4 style="color: var(--accent-green)">
+                        비즈니스 규칙을 메서드로
+                    </h4>
+                    <p>
+                        isEligibleForFullBenefits() 처럼 캡슐화하면 재사용
+                        가능하다.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">✅</div>
+                    <h4 style="color: var(--accent-yellow)">진짜 좋은 주석</h4>
+                    <p>
+                        법적 주석, 의도 설명, 경고, TODO — 코드로 표현 불가능한
+                        것만.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rule-box">
+                <strong>기억할 것 —</strong> 주석을 쓰고 싶다면 먼저 코드로
+                표현할 방법을 찾아라.
+            </div>
+        </div>
+
+        <script>
+            function showPage(idx) {
+                document.querySelectorAll(".page").forEach((p, i) => {
+                    p.classList.toggle("active", i === idx);
+                });
+                document.querySelectorAll("nav button").forEach((b, i) => {
+                    b.classList.toggle("active", i === idx);
+                });
+            }
+        </script>
+    </body>
+</html>

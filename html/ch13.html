@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Clean Code Ch.13 — 동시성</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0d0f14;
+                --surface: #13161e;
+                --surface2: #1a1e2a;
+                --border: #252a38;
+                --text: #d4daf0;
+                --muted: #5a6280;
+                --accent-red: #ff4d6d;
+                --accent-green: #39d98a;
+                --accent-blue: #4d9fff;
+                --accent-yellow: #ffcc00;
+                --accent-purple: #a78bfa;
+                --font-code: "JetBrains Mono", monospace;
+                --font-ui: "Syne", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font-ui);
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                padding: 40px 48px 32px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: flex-end;
+                gap: 24px;
+                background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+            }
+            .chapter-tag {
+                font-family: var(--font-code);
+                font-size: 11px;
+                color: var(--accent-blue);
+                background: rgba(77, 159, 255, 0.1);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+                padding: 4px 10px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            header h1 {
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            header h1 span {
+                color: var(--accent-blue);
+            }
+
+            /* ── Nav Tabs ── */
+            nav {
+                display: flex;
+                gap: 0;
+                padding: 0 48px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+            }
+            nav button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 16px 20px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition:
+                    color 0.2s,
+                    border-color 0.2s;
+                letter-spacing: 0.02em;
+            }
+            nav button.active {
+                color: var(--text);
+                border-bottom-color: var(--accent-blue);
+            }
+            nav button:hover:not(.active) {
+                color: var(--text);
+            }
+
+            /* ── Content ── */
+            .page {
+                display: none;
+                padding: 40px 48px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .page.active {
+                display: block;
+                animation: fadeUp 0.3s ease;
+            }
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ── Section Header ── */
+            .section-header {
+                margin-bottom: 32px;
+            }
+            .section-header h2 {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                margin-bottom: 8px;
+            }
+            .section-header p {
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            /* ── Cards ── */
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .badge {
+                font-family: var(--font-code);
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            .badge-bad {
+                background: rgba(255, 77, 109, 0.15);
+                color: var(--accent-red);
+                border: 1px solid rgba(255, 77, 109, 0.3);
+            }
+            .badge-good {
+                background: rgba(57, 217, 138, 0.12);
+                color: var(--accent-green);
+                border: 1px solid rgba(57, 217, 138, 0.25);
+            }
+            .badge-info {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+            }
+            .badge-warn {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+                border: 1px solid rgba(255, 204, 0, 0.25);
+            }
+
+            /* ── Code Block ── */
+            pre {
+                font-family: var(--font-code);
+                font-size: 12.5px;
+                line-height: 1.7;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .kw {
+                color: #c792ea;
+            }
+            .fn {
+                color: #82aaff;
+            }
+            .str {
+                color: #c3e88d;
+            }
+            .cm {
+                color: #546e7a;
+                font-style: italic;
+            }
+            .tp {
+                color: #ffcb6b;
+            }
+            .op {
+                color: #89ddff;
+            }
+            .num {
+                color: #f78c6c;
+            }
+            .highlight {
+                background: rgba(255, 77, 109, 0.12);
+                border-left: 2px solid var(--accent-red);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+            .highlight-good {
+                background: rgba(57, 217, 138, 0.08);
+                border-left: 2px solid var(--accent-green);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+
+            /* ── Two Column ── */
+            .two-col {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .two-col {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ── Concept Pill ── */
+            .concept-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 16px;
+            }
+            .concept-pill {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid;
+                cursor: default;
+                transition: transform 0.15s;
+            }
+            .concept-pill:hover {
+                transform: scale(1.05);
+            }
+            .pill-red {
+                color: var(--accent-red);
+                border-color: rgba(255, 77, 109, 0.35);
+                background: rgba(255, 77, 109, 0.08);
+            }
+            .pill-blue {
+                color: var(--accent-blue);
+                border-color: rgba(77, 159, 255, 0.35);
+                background: rgba(77, 159, 255, 0.08);
+            }
+            .pill-green {
+                color: var(--accent-green);
+                border-color: rgba(57, 217, 138, 0.35);
+                background: rgba(57, 217, 138, 0.08);
+            }
+            .pill-purple {
+                color: var(--accent-purple);
+                border-color: rgba(167, 139, 250, 0.35);
+                background: rgba(167, 139, 250, 0.08);
+            }
+
+            /* ── Rule Box ── */
+            .rule-box {
+                border-left: 3px solid var(--accent-blue);
+                padding: 14px 18px;
+                background: rgba(77, 159, 255, 0.06);
+                border-radius: 0 8px 8px 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                margin: 16px 0;
+            }
+            .rule-box.warn {
+                border-color: var(--accent-yellow);
+                background: rgba(255, 204, 0, 0.06);
+            }
+            .rule-box.danger {
+                border-color: var(--accent-red);
+                background: rgba(255, 77, 109, 0.06);
+            }
+            .rule-box.success {
+                border-color: var(--accent-green);
+                background: rgba(57, 217, 138, 0.06);
+            }
+            .rule-box strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Arrow ── */
+            .arrow-flow {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 20px 0;
+                flex-wrap: wrap;
+            }
+            .flow-step {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+                min-width: 120px;
+            }
+            .flow-arrow {
+                color: var(--muted);
+                font-size: 18px;
+            }
+
+            /* ── Pattern Diagram ── */
+            .diagram {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 28px;
+                margin: 20px 0;
+            }
+            .diagram-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 20px;
+                font-family: var(--font-code);
+            }
+            .class-box {
+                display: inline-flex;
+                flex-direction: column;
+                border: 1px solid;
+                border-radius: 6px;
+                overflow: hidden;
+                font-family: var(--font-code);
+                font-size: 12px;
+                min-width: 160px;
+            }
+            .class-header {
+                padding: 8px 14px;
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+            }
+            .class-body {
+                padding: 10px 14px;
+                line-height: 1.9;
+            }
+            .class-abstract {
+                border-color: var(--accent-purple);
+            }
+            .class-abstract .class-header {
+                background: rgba(167, 139, 250, 0.15);
+                color: var(--accent-purple);
+            }
+            .class-concrete {
+                border-color: var(--accent-blue);
+            }
+            .class-concrete .class-header {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+            }
+            .class-factory {
+                border-color: var(--accent-yellow);
+            }
+            .class-factory .class-header {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+            }
+
+            .uml-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .uml-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .uml-arrow {
+                display: flex;
+                align-items: center;
+                padding-top: 28px;
+                color: var(--accent-green);
+                font-size: 22px;
+            }
+
+            /* ── Summary Card ── */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 8px;
+            }
+            .summary-item {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px;
+            }
+            .summary-item .icon {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+            .summary-item h4 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .summary-item p {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.6;
+            }
+
+            /* ── Callout ── */
+            .callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+                background: var(--surface2);
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            .callout .icon {
+                font-size: 18px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .callout p {
+                font-size: 13px;
+                line-height: 1.65;
+                color: var(--text);
+            }
+            .callout p strong {
+                color: var(--accent-yellow);
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 28px 0;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                margin: 16px 0;
+            }
+            th {
+                background: var(--surface2);
+                padding: 10px 14px;
+                text-align: left;
+                font-size: 11px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+                border-bottom: 1px solid var(--border);
+            }
+            td {
+                padding: 10px 14px;
+                border-bottom: 1px solid rgba(37, 42, 56, 0.5);
+                line-height: 1.5;
+            }
+            td strong {
+                color: var(--accent-yellow);
+            }
+            code {
+                font-family: var(--font-code);
+                font-size: 12px;
+                background: var(--surface2);
+                padding: 2px 6px;
+                border-radius: 3px;
+            }
+            .pill-yellow {
+                color: var(--accent-yellow);
+                border-color: rgba(255, 204, 0, 0.35);
+                background: rgba(255, 204, 0, 0.08);
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div class="chapter-tag">Clean Code · Ch.13</div>
+            </div>
+            <h1><span>동시성</span></h1>
+        </header>
+
+        <nav>
+            <button class="active" onclick="showPage(0)">① 미신과 사실</button>
+            <button onclick="showPage(1)">② 방어 원칙</button>
+            <button onclick="showPage(2)">③ Producer-Consumer</button>
+            <button onclick="showPage(3)">④ Readers-Writers</button>
+            <button onclick="showPage(4)">⑤ Dining Philosophers</button>
+            <button onclick="showPage(5)">⑥ 요약</button>
+        </nav>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 0: 미신과 사실
+══════════════════════════════════════════════════ -->
+        <div class="page active" id="page0">
+            <div class="section-header">
+                <h2>동시성에 대한 오해와 진실</h2>
+                <p>동시성은 결코 쉽지 않다. 먼저 현실을 직시하자.</p>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-warn">⚠️ 미신</span>
+                    </div>
+                    <div class="callout">
+                        <span class="icon">❌</span>
+                        <p>
+                            <strong>동시성은 항상 성능을 높여준다</strong> —
+                            대기 시간이 아주 길어 여러 스레드가 프로세서를
+                            공유하거나, 여러 프로세서가 처리할 독립적인 계산이
+                            충분히 많은 경우에만 성능이 향상된다.
+                        </p>
+                    </div>
+                    <div class="callout">
+                        <span class="icon">❌</span>
+                        <p>
+                            <strong
+                                >동시성을 구현해도 설계는 변하지 않는다</strong
+                            >
+                            — '무엇'과 '언제'를 분리하면 설계가 크게 변한다.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-info">✅ 사실</span>
+                    </div>
+                    <div class="callout">
+                        <span class="icon">⚡</span>
+                        <p>
+                            동시성은 다소 <strong>부하를 요구한다</strong> —
+                            성능 오버헤드와 추가 코드가 수반된다.
+                        </p>
+                    </div>
+                    <div class="callout">
+                        <span class="icon">🐛</span>
+                        <p>
+                            <strong>동시성 버그는 재현이 어렵다</strong> —
+                            타이밍에 의존하므로 같은 조건에서도 다르게 동작할 수
+                            있다.
+                        </p>
+                    </div>
+                    <div class="callout">
+                        <span class="icon">🏗️</span>
+                        <p>
+                            <strong>근본적인 설계 전략 재고 필요</strong> —
+                            동시성은 단순히 코드를 추가하는 문제가 아니다.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 1: 방어 원칙
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page1">
+            <div class="section-header">
+                <h2>동시성 방어 원칙</h2>
+                <p>동시성 문제를 예방하기 위한 설계 원칙들.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info">① SRP</span>
+                </div>
+                <p
+                    style="
+                        font-size: 13px;
+                        line-height: 1.65;
+                        margin-bottom: 12px;
+                    "
+                >
+                    동시성 관련 코드는 다른 코드와 분리하라. 스레드 관리 코드와
+                    비즈니스 로직을 섞지 마라.
+                </p>
+                <div class="concept-row">
+                    <span class="concept-pill pill-blue">SRP</span>
+                    <span class="concept-pill pill-blue">관심사 분리</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-warn">② 임계 영역 보호</span>
+                </div>
+                <p
+                    style="
+                        font-size: 13px;
+                        line-height: 1.65;
+                        margin-bottom: 12px;
+                    "
+                >
+                    스레드 간 공유 자원에 동시 접근하면 예상치 못한 결과가
+                    생긴다. synchronized/lock을 사용하라.
+                </p>
+                <pre><span class="kw">private readonly object</span> _lock = <span class="kw">new object</span>();
+<span class="kw">private int</span> _counter = <span class="num">0</span>;
+
+<span class="kw">public void</span> <span class="fn">Increment</span>() {
+<span class="highlight-good">    <span class="kw">lock</span> (_lock) { _counter++; }</span>
+}</pre>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">③ 읽기 전용 복사</span>
+                </div>
+                <p style="font-size: 13px; line-height: 1.65">
+                    임계 영역을 만들기 어렵다면 차라리
+                    <strong style="color: var(--accent-yellow)"
+                        >객체를 복사해서 읽기 전용</strong
+                    >으로 사용하는 것도 좋다. 복사 비용이 동기화 비용보다 저렴할
+                    수 있다.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">④ 독립적인 스레드</span>
+                </div>
+                <p style="font-size: 13px; line-height: 1.65">
+                    스레드는 가능한 독립적으로 구현하라. 각자의 자원만 사용하고,
+                    자료를 독자적으로 처리 가능하게 분리하라. 공유 자원 없음 =
+                    경쟁 조건 없음.
+                </p>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 2: Producer-Consumer
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page2">
+            <div class="section-header">
+                <h2>Producer-Consumer 패턴</h2>
+                <p>
+                    생산자는 큐에 넣고 소비자는 큐에서 꺼낸다. 두 역할의 속도
+                    차이를 버퍼로 완충한다.
+                </p>
+            </div>
+
+            <div class="arrow-flow">
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-blue);
+                        color: var(--accent-blue);
+                    "
+                >
+                    Producer
+                </div>
+                <div class="flow-arrow">→ 작업 추가 →</div>
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-yellow);
+                        color: var(--accent-yellow);
+                    "
+                >
+                    Buffer Queue
+                </div>
+                <div class="flow-arrow">→ 작업 꺼냄 →</div>
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-green);
+                        color: var(--accent-green);
+                    "
+                >
+                    Consumer
+                </div>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">Producer 역할</div>
+                    <div
+                        style="
+                            font-family: var(--font-code);
+                            font-size: 12.5px;
+                            line-height: 2;
+                            color: var(--text);
+                        "
+                    >
+                        <div>- 작업(task)을 생성한다</div>
+                        <div>- 버퍼(큐)가 가득 차면 대기</div>
+                        <div>- 작업을 큐에 추가 후 신호 전송:</div>
+                        <div style="color: var(--accent-green)">
+                            &nbsp;&nbsp;"큐가 비어있지 않다"
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Consumer 역할</div>
+                    <div
+                        style="
+                            font-family: var(--font-code);
+                            font-size: 12.5px;
+                            line-height: 2;
+                            color: var(--text);
+                        "
+                    >
+                        <div>- 큐에서 작업을 꺼낸다</div>
+                        <div>- 큐가 비어있으면 대기</div>
+                        <div>- 작업 처리 후 신호 전송:</div>
+                        <div style="color: var(--accent-blue)">
+                            &nbsp;&nbsp;"큐가 가득 차있지 않다"
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rule-box">
+                <strong>신호 체계 —</strong> 생산자와 소비자는 서로에게 신호를
+                보내며 조율한다. 그 전까지 둘은 신호를 기다린다.
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info">해결 방법</span>
+                </div>
+                <div class="callout">
+                    <span class="icon">🔢</span>
+                    <p>
+                        <strong>Semaphore:</strong> 빈 슬롯 수와 아이템 수를
+                        세는 세마포어 + 뮤텍스로 구현
+                    </p>
+                </div>
+                <div class="callout">
+                    <span class="icon">📦</span>
+                    <p>
+                        <strong>Blocking Queue:</strong> put()/take()가
+                        내부적으로 대기/신호를 처리해주는 큐 구현체 사용
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 3: Readers-Writers
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page3">
+            <div class="section-header">
+                <h2>Readers-Writers 패턴</h2>
+                <p>읽기는 동시에 가능하지만 쓰기는 단독으로만 가능하다.</p>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title" style="color: var(--accent-blue)">
+                        Reader
+                    </div>
+                    <div
+                        style="
+                            font-family: var(--font-code);
+                            font-size: 12.5px;
+                            line-height: 2;
+                            color: var(--text);
+                        "
+                    >
+                        <div>- 읽기만 하는 스레드</div>
+                        <div>- 다수가 동시에 읽기 가능</div>
+                        <div>- Writer가 없을 때 자유롭게 읽음</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title" style="color: var(--accent-red)">
+                        Writer
+                    </div>
+                    <div
+                        style="
+                            font-family: var(--font-code);
+                            font-size: 12.5px;
+                            line-height: 2;
+                            color: var(--text);
+                        "
+                    >
+                        <div>- 쓰기를 시도하는 스레드</div>
+                        <div>- 단독으로만 허용 (배타적 접근)</div>
+                        <div>- 모든 Reader가 없을 때만 쓰기</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="callout">
+                <span class="icon">⚠️</span>
+                <p>
+                    <strong>Reader 우선 정책:</strong> 처리량↑ 이지만 Writer가
+                    기아(Starvation) 상태에 빠지고 공유 자원이
+                    <strong>정체된 정보</strong>로 가득 찬다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">⚠️</span>
+                <p>
+                    <strong>Writer 우선 정책:</strong> 데이터는 최신으로
+                    유지되지만 처리량이 줄어든다.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info">해결 방법</span>
+                </div>
+                <div class="callout">
+                    <span class="icon">🔒</span>
+                    <p>
+                        <strong>RW Lock:</strong> 읽기 시엔 읽기 접근은 통과,
+                        쓰기 접근은 차단. 쓰기 시엔 모든 접근 차단.
+                    </p>
+                </div>
+                <div class="callout">
+                    <span class="icon">📋</span>
+                    <p>
+                        <strong>FIFO 정책:</strong> 요청 순서대로 처리해
+                        Starvation 방지
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 4: Dining Philosophers
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page4">
+            <div class="section-header">
+                <h2>식사하는 철학자 문제</h2>
+                <p>자원 공유 패턴에서 발생하는 교착·기아·비효율 문제의 원형.</p>
+            </div>
+
+            <div class="rule-box warn">
+                <strong>시나리오 —</strong> N명의 철학자가 원형 테이블에 앉아
+                있고, 인접한 두 포크를 모두 잡아야만 식사할 수 있다. 포크는
+                이웃과 공유된다.
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad">Deadlock</span>
+                    </div>
+                    <p style="font-size: 13px; line-height: 1.65">
+                        전원이 왼쪽 포크만 잡고 서로 기다리면 영원히 멈춤.
+                        아무도 오른쪽 포크를 가져갈 수 없다.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad">Livelock</span>
+                    </div>
+                    <p style="font-size: 13px; line-height: 1.65">
+                        서로 양보만 반복 — 포크를 집었다 놨다를 반복하지만
+                        실제로 아무도 식사하지 못한다.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-warn">Starvation</span>
+                    </div>
+                    <p style="font-size: 13px; line-height: 1.65">
+                        특정 철학자는 계속 굶주린다 — 운이 나쁘면 영원히 포크를
+                        못 잡을 수 있다.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-warn">비효율성</span>
+                    </div>
+                    <p style="font-size: 13px; line-height: 1.65">
+                        과도하게 보수적인 설계 — 한 번에 한 명만 식사하게 하면
+                        안전하지만 병렬성이 낮아진다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rule-box danger">
+                <strong>근본 원인 —</strong> 포크를 잡을 때 atomic하게 (한 번에)
+                잡지 못하기 때문이다. 왼쪽 잡고 → 오른쪽 잡기 시도 사이에 다른
+                스레드가 개입한다.
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">✅ 해결 방법</span>
+                </div>
+                <div class="callout">
+                    <span class="icon">🔢</span>
+                    <p>
+                        <strong>Resource Hierarchy (Ordered Locks):</strong>
+                        포크에 번호를 매겨 항상 낮은 번호부터 잡는다. 순환
+                        대기가 원천 차단된다.
+                    </p>
+                </div>
+                <div class="callout">
+                    <span class="icon">⏱️</span>
+                    <p>
+                        <strong>타임아웃 + 재시도:</strong> 일정 시간 동안
+                        포크를 못 잡으면 포기하고 재시도. 데드락 방지.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 5: 요약
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page5">
+            <div class="section-header">
+                <h2>동시성 핵심 요약</h2>
+                <p>동시성을 안전하게 다루기 위한 핵심 전략</p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="icon">⚡</div>
+                    <h4 style="color: var(--accent-red)">동시성은 어렵다</h4>
+                    <p>성능 향상이 보장되지 않고, 버그는 재현이 어렵다.</p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">✂️</div>
+                    <h4 style="color: var(--accent-blue)">분리하라</h4>
+                    <p>동시성 코드와 비즈니스 로직을 분리. SRP를 적용하라.</p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🔒</div>
+                    <h4 style="color: var(--accent-yellow)">공유를 줄여라</h4>
+                    <p>
+                        공유 자원과 임계 영역을 최소화하라. 읽기 전용 객체
+                        복사도 고려하라.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🧪</div>
+                    <h4 style="color: var(--accent-green)">테스트하라</h4>
+                    <p>
+                        다양한 설정에서 여러 번 테스트하라. 타이밍 버그는 한두
+                        번 실행으로 잡히지 않는다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rule-box">
+                <strong>3가지 수칙 —</strong> (1) 필요한 구간만 잠가라. (2) 공유
+                객체와 공유 구간을 최소화하라. (3) 무작위 순서로 여러 번
+                테스트하라.
+            </div>
+        </div>
+
+        <script>
+            function showPage(idx) {
+                document.querySelectorAll(".page").forEach((p, i) => {
+                    p.classList.toggle("active", i === idx);
+                });
+                document.querySelectorAll("nav button").forEach((b, i) => {
+                    b.classList.toggle("active", i === idx);
+                });
+            }
+        </script>
+    </body>
+</html>

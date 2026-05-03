@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Clean Code Ch.12 — 창발성</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0d0f14;
+                --surface: #13161e;
+                --surface2: #1a1e2a;
+                --border: #252a38;
+                --text: #d4daf0;
+                --muted: #5a6280;
+                --accent-red: #ff4d6d;
+                --accent-green: #39d98a;
+                --accent-blue: #4d9fff;
+                --accent-yellow: #ffcc00;
+                --accent-purple: #a78bfa;
+                --font-code: "JetBrains Mono", monospace;
+                --font-ui: "Syne", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font-ui);
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                padding: 40px 48px 32px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: flex-end;
+                gap: 24px;
+                background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+            }
+            .chapter-tag {
+                font-family: var(--font-code);
+                font-size: 11px;
+                color: var(--accent-blue);
+                background: rgba(77, 159, 255, 0.1);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+                padding: 4px 10px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            header h1 {
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            header h1 span {
+                color: var(--accent-blue);
+            }
+
+            /* ── Nav Tabs ── */
+            nav {
+                display: flex;
+                gap: 0;
+                padding: 0 48px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+            }
+            nav button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 16px 20px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition:
+                    color 0.2s,
+                    border-color 0.2s;
+                letter-spacing: 0.02em;
+            }
+            nav button.active {
+                color: var(--text);
+                border-bottom-color: var(--accent-blue);
+            }
+            nav button:hover:not(.active) {
+                color: var(--text);
+            }
+
+            /* ── Content ── */
+            .page {
+                display: none;
+                padding: 40px 48px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .page.active {
+                display: block;
+                animation: fadeUp 0.3s ease;
+            }
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ── Section Header ── */
+            .section-header {
+                margin-bottom: 32px;
+            }
+            .section-header h2 {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                margin-bottom: 8px;
+            }
+            .section-header p {
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            /* ── Cards ── */
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .badge {
+                font-family: var(--font-code);
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            .badge-bad {
+                background: rgba(255, 77, 109, 0.15);
+                color: var(--accent-red);
+                border: 1px solid rgba(255, 77, 109, 0.3);
+            }
+            .badge-good {
+                background: rgba(57, 217, 138, 0.12);
+                color: var(--accent-green);
+                border: 1px solid rgba(57, 217, 138, 0.25);
+            }
+            .badge-info {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+            }
+            .badge-warn {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+                border: 1px solid rgba(255, 204, 0, 0.25);
+            }
+
+            /* ── Code Block ── */
+            pre {
+                font-family: var(--font-code);
+                font-size: 12.5px;
+                line-height: 1.7;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .kw {
+                color: #c792ea;
+            }
+            .fn {
+                color: #82aaff;
+            }
+            .str {
+                color: #c3e88d;
+            }
+            .cm {
+                color: #546e7a;
+                font-style: italic;
+            }
+            .tp {
+                color: #ffcb6b;
+            }
+            .op {
+                color: #89ddff;
+            }
+            .num {
+                color: #f78c6c;
+            }
+            .highlight {
+                background: rgba(255, 77, 109, 0.12);
+                border-left: 2px solid var(--accent-red);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+            .highlight-good {
+                background: rgba(57, 217, 138, 0.08);
+                border-left: 2px solid var(--accent-green);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+
+            /* ── Two Column ── */
+            .two-col {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .two-col {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ── Concept Pill ── */
+            .concept-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 16px;
+            }
+            .concept-pill {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid;
+                cursor: default;
+                transition: transform 0.15s;
+            }
+            .concept-pill:hover {
+                transform: scale(1.05);
+            }
+            .pill-red {
+                color: var(--accent-red);
+                border-color: rgba(255, 77, 109, 0.35);
+                background: rgba(255, 77, 109, 0.08);
+            }
+            .pill-blue {
+                color: var(--accent-blue);
+                border-color: rgba(77, 159, 255, 0.35);
+                background: rgba(77, 159, 255, 0.08);
+            }
+            .pill-green {
+                color: var(--accent-green);
+                border-color: rgba(57, 217, 138, 0.35);
+                background: rgba(57, 217, 138, 0.08);
+            }
+            .pill-purple {
+                color: var(--accent-purple);
+                border-color: rgba(167, 139, 250, 0.35);
+                background: rgba(167, 139, 250, 0.08);
+            }
+
+            /* ── Rule Box ── */
+            .rule-box {
+                border-left: 3px solid var(--accent-blue);
+                padding: 14px 18px;
+                background: rgba(77, 159, 255, 0.06);
+                border-radius: 0 8px 8px 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                margin: 16px 0;
+            }
+            .rule-box.warn {
+                border-color: var(--accent-yellow);
+                background: rgba(255, 204, 0, 0.06);
+            }
+            .rule-box.danger {
+                border-color: var(--accent-red);
+                background: rgba(255, 77, 109, 0.06);
+            }
+            .rule-box.success {
+                border-color: var(--accent-green);
+                background: rgba(57, 217, 138, 0.06);
+            }
+            .rule-box strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Arrow ── */
+            .arrow-flow {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 20px 0;
+                flex-wrap: wrap;
+            }
+            .flow-step {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+                min-width: 120px;
+            }
+            .flow-arrow {
+                color: var(--muted);
+                font-size: 18px;
+            }
+
+            /* ── Pattern Diagram ── */
+            .diagram {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 28px;
+                margin: 20px 0;
+            }
+            .diagram-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 20px;
+                font-family: var(--font-code);
+            }
+            .class-box {
+                display: inline-flex;
+                flex-direction: column;
+                border: 1px solid;
+                border-radius: 6px;
+                overflow: hidden;
+                font-family: var(--font-code);
+                font-size: 12px;
+                min-width: 160px;
+            }
+            .class-header {
+                padding: 8px 14px;
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+            }
+            .class-body {
+                padding: 10px 14px;
+                line-height: 1.9;
+            }
+            .class-abstract {
+                border-color: var(--accent-purple);
+            }
+            .class-abstract .class-header {
+                background: rgba(167, 139, 250, 0.15);
+                color: var(--accent-purple);
+            }
+            .class-concrete {
+                border-color: var(--accent-blue);
+            }
+            .class-concrete .class-header {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+            }
+            .class-factory {
+                border-color: var(--accent-yellow);
+            }
+            .class-factory .class-header {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+            }
+
+            .uml-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .uml-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .uml-arrow {
+                display: flex;
+                align-items: center;
+                padding-top: 28px;
+                color: var(--accent-green);
+                font-size: 22px;
+            }
+
+            /* ── Summary Card ── */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 8px;
+            }
+            .summary-item {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px;
+            }
+            .summary-item .icon {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+            .summary-item h4 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .summary-item p {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.6;
+            }
+
+            /* ── Callout ── */
+            .callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+                background: var(--surface2);
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            .callout .icon {
+                font-size: 18px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .callout p {
+                font-size: 13px;
+                line-height: 1.65;
+                color: var(--text);
+            }
+            .callout p strong {
+                color: var(--accent-yellow);
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 28px 0;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                margin: 16px 0;
+            }
+            th {
+                background: var(--surface2);
+                padding: 10px 14px;
+                text-align: left;
+                font-size: 11px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+                border-bottom: 1px solid var(--border);
+            }
+            td {
+                padding: 10px 14px;
+                border-bottom: 1px solid rgba(37, 42, 56, 0.5);
+                line-height: 1.5;
+            }
+            td strong {
+                color: var(--accent-yellow);
+            }
+            code {
+                font-family: var(--font-code);
+                font-size: 12px;
+                background: var(--surface2);
+                padding: 2px 6px;
+                border-radius: 3px;
+            }
+            .pill-yellow {
+                color: var(--accent-yellow);
+                border-color: rgba(255, 204, 0, 0.35);
+                background: rgba(255, 204, 0, 0.08);
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div class="chapter-tag">Clean Code · Ch.12</div>
+            </div>
+            <h1><span>창발적</span> 설계</h1>
+        </header>
+
+        <nav>
+            <button class="active" onclick="showPage(0)">① 4가지 원칙</button>
+            <button onclick="showPage(1)">② 중복 제거</button>
+            <button onclick="showPage(2)">③ 템플릿 메서드 패턴</button>
+            <button onclick="showPage(3)">④ 요약</button>
+        </nav>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 0: 4가지 원칙
+══════════════════════════════════════════════════ -->
+        <div class="page active" id="page0">
+            <div class="section-header">
+                <h2>창발적 설계의 4가지 원칙</h2>
+                <p>
+                    단순한 규칙 4가지를 지키는 것만으로도 좋은 설계가 창발한다.
+                </p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="icon">🧪</div>
+                    <h4 style="color: var(--accent-blue)">
+                        ① 모든 테스트를 실행한다
+                    </h4>
+                    <p>
+                        테스트가 가능한 시스템을 만들려면 SRP를 준수해야 한다.
+                        결합도를 낮추고 응집력을 높이게 된다.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">♻️</div>
+                    <h4 style="color: var(--accent-green)">② 중복을 없앤다</h4>
+                    <p>
+                        작은 중복도 제거하라. TEMPLATE METHOD 등 패턴이 여기서
+                        발생한다.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">📖</div>
+                    <h4 style="color: var(--accent-purple)">
+                        ③ 의도를 표현한다
+                    </h4>
+                    <p>
+                        좋은 이름, 작은 함수와 클래스, 표준 패턴 사용으로 의도를
+                        명확히 하라.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">✂️</div>
+                    <h4 style="color: var(--accent-yellow)">
+                        ④ 클래스와 메서드를 최소로
+                    </h4>
+                    <p>
+                        SRP를 극단으로 적용하면 오히려 클래스가 너무 많아진다.
+                        실용적 균형을 찾아라.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rule-box">
+                <strong>우선순위 —</strong> 위 순서대로 중요하다. 테스트가
+                없으면 리팩터링도 의미 없다. 중복 제거와 의도 표현은 테스트가
+                있어야 안전하게 할 수 있다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 1: 중복 제거
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page1">
+            <div class="section-header">
+                <h2>중복 제거 → 더 많은 책임 발견</h2>
+                <p>중복을 제거하다 보면 숨어있던 SRP 위반이 드러난다.</p>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad"
+                            >❌ BEFORE — 중복된 dispose/replace 로직</span
+                        >
+                    </div>
+                    <pre><span class="kw">public void</span> <span class="fn">scaleToOneDimension</span>(
+    <span class="kw">float</span> desiredDimension, <span class="kw">float</span> imageDimension) {
+  <span class="kw">if</span> (<span class="tp">Math</span>.<span class="fn">abs</span>(desiredDimension - imageDimension)
+      &lt; errorThreshold)
+    <span class="kw">return</span>;
+  <span class="kw">float</span> scalingFactor = desiredDimension / imageDimension;
+  scalingFactor = (<span class="kw">float</span>)(
+      <span class="tp">Math</span>.<span class="fn">floor</span>(scalingFactor * <span class="num">100</span>) * <span class="num">0.01f</span>);
+  <span class="tp">RenderedOp</span> newImage = <span class="tp">ImageUtilities</span>.<span class="fn">getScaledImage</span>(
+      image, scalingFactor, scalingFactor);
+<span class="highlight">  image.<span class="fn">dispose</span>();
+  <span class="tp">System</span>.<span class="fn">gc</span>();
+  image = newImage;</span>
+}
+
+<span class="kw">public synchronized void</span> <span class="fn">rotate</span>(<span class="kw">int</span> degrees) {
+  <span class="tp">RenderedOp</span> newImage =
+      <span class="tp">ImageUtilities</span>.<span class="fn">getRotatedImage</span>(image, degrees);
+<span class="highlight">  image.<span class="fn">dispose</span>();
+  <span class="tp">System</span>.<span class="fn">gc</span>();
+  image = newImage;</span>
+}</pre>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-good"
+                            >✅ AFTER — replaceImage 추출</span
+                        >
+                    </div>
+                    <pre><span class="kw">public void</span> <span class="fn">scaleToOneDimension</span>(
+    <span class="kw">float</span> desiredDimension, <span class="kw">float</span> imageDimension) {
+  <span class="kw">if</span> (<span class="tp">Math</span>.<span class="fn">abs</span>(desiredDimension - imageDimension)
+      &lt; errorThreshold)
+    <span class="kw">return</span>;
+  <span class="kw">float</span> scalingFactor = desiredDimension / imageDimension;
+  scalingFactor = (<span class="kw">float</span>)(
+      <span class="tp">Math</span>.<span class="fn">floor</span>(scalingFactor * <span class="num">100</span>) * <span class="num">0.01f</span>);
+<span class="highlight-good">  <span class="fn">replaceImage</span>(<span class="tp">ImageUtilities</span>.<span class="fn">getScaledImage</span>(
+      image, scalingFactor, scalingFactor));</span>
+}
+
+<span class="kw">public synchronized void</span> <span class="fn">rotate</span>(<span class="kw">int</span> degrees) {
+<span class="highlight-good">  <span class="fn">replaceImage</span>(
+      <span class="tp">ImageUtilities</span>.<span class="fn">getRotatedImage</span>(image, degrees));</span>
+}
+
+<span class="highlight-good"><span class="kw">private void</span> <span class="fn">replaceImage</span>(<span class="tp">RenderedOp</span> newImage) {
+  image.<span class="fn">dispose</span>();
+  <span class="tp">System</span>.<span class="fn">gc</span>();
+  image = newImage;
+}</span></pre>
+                </div>
+            </div>
+
+            <div class="rule-box warn">
+                <strong>발견 —</strong> scaleToOneDimension과 rotate는 SRP를
+                위반하고 있었다. 이미지를 dispose하고 교체하는 것은 각 함수의
+                책임이 아니다. 중복 제거 과정에서 이 사실이 드러났다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 2: 템플릿 메서드 패턴
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page2">
+            <div class="section-header">
+                <h2>Template Method Pattern</h2>
+                <p>
+                    알고리즘 전체 구조는 고정, 구현 세부는 하위 클래스가
+                    정의한다.
+                </p>
+            </div>
+
+            <div class="rule-box">
+                <strong>구조 —</strong> "이런 방식으로 진행할 거야. 근데
+                중간중간 세부 동작은 니가 채워 넣어봐." 추상적 리더 역할.
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad"
+                            >❌ BEFORE — 중복 구조</span
+                        >
+                    </div>
+                    <pre><span class="kw">public class</span> <span class="tp">VacationPolicy</span> {
+  <span class="kw">public void</span> <span class="fn">accrueUSDDivisionVacation</span>() {
+    <span class="cm">// 지금까지 근무한 시간을 바탕으로</span>
+    <span class="cm">// 휴가 일수를 계산하는 코드</span>
+    <span class="cm">// ...</span>
+<span class="highlight">    <span class="cm">// 미국 최소 법정 일수를 만족하는지 확인</span>
+    <span class="cm">// ...</span></span>
+    <span class="cm">// 급여 대장에 적용하는 코드</span>
+    <span class="cm">// ...</span>
+  }
+
+  <span class="kw">public void</span> <span class="fn">accrueEUDivisionVacation</span>() {
+    <span class="cm">// 지금까지 근무한 시간을 바탕으로</span>
+    <span class="cm">// 휴가 일수를 계산하는 코드</span>
+    <span class="cm">// ...</span>
+<span class="highlight">    <span class="cm">// 유럽연합 최소 법정 일수를 만족하는지 확인</span>
+    <span class="cm">// ...</span></span>
+    <span class="cm">// 급여 대장에 적용하는 코드</span>
+    <span class="cm">// ...</span>
+  }
+}</pre>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-good"
+                            >✅ AFTER — Template Method</span
+                        >
+                    </div>
+                    <pre><span class="kw">abstract public class</span> <span class="tp">VacationPolicy</span> {
+  <span class="kw">public void</span> <span class="fn">accrueVacation</span>() {
+    <span class="fn">calculateBaseVacationHours</span>();
+    <span class="fn">alterForLegalMinimums</span>();
+    <span class="fn">applyToPayroll</span>();
+  }
+
+  <span class="kw">private void</span> <span class="fn">calculateBaseVacationHours</span>() { <span class="cm">/* ... */</span> }
+<span class="highlight-good">  <span class="kw">abstract protected void</span> <span class="fn">alterForLegalMinimums</span>();</span>
+  <span class="kw">private void</span> <span class="fn">applyToPayroll</span>() { <span class="cm">/* ... */</span> }
+}
+
+<span class="kw">public class</span> <span class="tp">USVacationPolicy</span> <span class="kw">extends</span> <span class="tp">VacationPolicy</span> {
+  <span class="op">@Override</span>
+<span class="highlight-good">  <span class="kw">protected void</span> <span class="fn">alterForLegalMinimums</span>() {
+    <span class="cm">// 미국 최소 법정 일수를 사용한다.</span>
+  }</span>
+}
+
+<span class="kw">public class</span> <span class="tp">EUVacationPolicy</span> <span class="kw">extends</span> <span class="tp">VacationPolicy</span> {
+  <span class="op">@Override</span>
+<span class="highlight-good">  <span class="kw">protected void</span> <span class="fn">alterForLegalMinimums</span>() {
+    <span class="cm">// 유럽연합 최소 법정 일수를 사용한다.</span>
+  }</span>
+}</pre>
+                </div>
+            </div>
+
+            <div class="rule-box success">
+                <strong>Template Method 핵심 —</strong> 공통 알고리즘(흐름)은
+                상위 클래스에서 정의하고, 변하는 부분만 하위 클래스에서
+                구현한다. 코드 중복이 사라지고 확장점이 명확해진다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 3: 요약
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page3">
+            <div class="section-header">
+                <h2>Ch.12 핵심 요약</h2>
+                <p>창발적 설계가 만들어지는 방식과 그 가치</p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="icon">🏗️</div>
+                    <h4>창발적 설계</h4>
+                    <p>
+                        복잡한 설계를 처음부터 완벽하게 만들 수 없다. 단순한
+                        규칙을 지키면 좋은 설계가 자연스럽게 나타난다.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🔍</div>
+                    <h4>중복 = 설계 문제의 단서</h4>
+                    <p>중복을 제거하다 보면 숨어있던 책임 문제가 드러난다.</p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">📐</div>
+                    <h4>패턴은 중복에서 탄생</h4>
+                    <p>
+                        Template Method, Strategy 등 많은 패턴이 중복 제거
+                        과정에서 자연스럽게 등장한다.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">⚖️</div>
+                    <h4>실용적 균형</h4>
+                    <p>
+                        클래스와 메서드를 최소화하되, 독단적인 SRP 적용으로
+                        클래스 수가 폭발하지 않게 균형을 찾아라.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function showPage(idx) {
+                document.querySelectorAll(".page").forEach((p, i) => {
+                    p.classList.toggle("active", i === idx);
+                });
+                document.querySelectorAll("nav button").forEach((b, i) => {
+                    b.classList.toggle("active", i === idx);
+                });
+            }
+        </script>
+    </body>
+</html>

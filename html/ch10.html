@@ -1,0 +1,831 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Clean Code Ch.10 — 클래스</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0d0f14;
+                --surface: #13161e;
+                --surface2: #1a1e2a;
+                --border: #252a38;
+                --text: #d4daf0;
+                --muted: #5a6280;
+                --accent-red: #ff4d6d;
+                --accent-green: #39d98a;
+                --accent-blue: #4d9fff;
+                --accent-yellow: #ffcc00;
+                --accent-purple: #a78bfa;
+                --font-code: "JetBrains Mono", monospace;
+                --font-ui: "Syne", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font-ui);
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                padding: 40px 48px 32px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: flex-end;
+                gap: 24px;
+                background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+            }
+            .chapter-tag {
+                font-family: var(--font-code);
+                font-size: 11px;
+                color: var(--accent-blue);
+                background: rgba(77, 159, 255, 0.1);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+                padding: 4px 10px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            header h1 {
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            header h1 span {
+                color: var(--accent-blue);
+            }
+
+            /* ── Nav Tabs ── */
+            nav {
+                display: flex;
+                gap: 0;
+                padding: 0 48px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+            }
+            nav button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 16px 20px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition:
+                    color 0.2s,
+                    border-color 0.2s;
+                letter-spacing: 0.02em;
+            }
+            nav button.active {
+                color: var(--text);
+                border-bottom-color: var(--accent-blue);
+            }
+            nav button:hover:not(.active) {
+                color: var(--text);
+            }
+
+            /* ── Content ── */
+            .page {
+                display: none;
+                padding: 40px 48px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .page.active {
+                display: block;
+                animation: fadeUp 0.3s ease;
+            }
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ── Section Header ── */
+            .section-header {
+                margin-bottom: 32px;
+            }
+            .section-header h2 {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                margin-bottom: 8px;
+            }
+            .section-header p {
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            /* ── Cards ── */
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .badge {
+                font-family: var(--font-code);
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            .badge-bad {
+                background: rgba(255, 77, 109, 0.15);
+                color: var(--accent-red);
+                border: 1px solid rgba(255, 77, 109, 0.3);
+            }
+            .badge-good {
+                background: rgba(57, 217, 138, 0.12);
+                color: var(--accent-green);
+                border: 1px solid rgba(57, 217, 138, 0.25);
+            }
+            .badge-info {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+            }
+            .badge-warn {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+                border: 1px solid rgba(255, 204, 0, 0.25);
+            }
+
+            /* ── Code Block ── */
+            pre {
+                font-family: var(--font-code);
+                font-size: 12.5px;
+                line-height: 1.7;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .kw {
+                color: #c792ea;
+            }
+            .fn {
+                color: #82aaff;
+            }
+            .str {
+                color: #c3e88d;
+            }
+            .cm {
+                color: #546e7a;
+                font-style: italic;
+            }
+            .tp {
+                color: #ffcb6b;
+            }
+            .op {
+                color: #89ddff;
+            }
+            .num {
+                color: #f78c6c;
+            }
+            .highlight {
+                background: rgba(255, 77, 109, 0.12);
+                border-left: 2px solid var(--accent-red);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+            .highlight-good {
+                background: rgba(57, 217, 138, 0.08);
+                border-left: 2px solid var(--accent-green);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+
+            /* ── Two Column ── */
+            .two-col {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .two-col {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ── Concept Pill ── */
+            .concept-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 16px;
+            }
+            .concept-pill {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid;
+                cursor: default;
+                transition: transform 0.15s;
+            }
+            .concept-pill:hover {
+                transform: scale(1.05);
+            }
+            .pill-red {
+                color: var(--accent-red);
+                border-color: rgba(255, 77, 109, 0.35);
+                background: rgba(255, 77, 109, 0.08);
+            }
+            .pill-blue {
+                color: var(--accent-blue);
+                border-color: rgba(77, 159, 255, 0.35);
+                background: rgba(77, 159, 255, 0.08);
+            }
+            .pill-green {
+                color: var(--accent-green);
+                border-color: rgba(57, 217, 138, 0.35);
+                background: rgba(57, 217, 138, 0.08);
+            }
+            .pill-purple {
+                color: var(--accent-purple);
+                border-color: rgba(167, 139, 250, 0.35);
+                background: rgba(167, 139, 250, 0.08);
+            }
+
+            /* ── Rule Box ── */
+            .rule-box {
+                border-left: 3px solid var(--accent-blue);
+                padding: 14px 18px;
+                background: rgba(77, 159, 255, 0.06);
+                border-radius: 0 8px 8px 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                margin: 16px 0;
+            }
+            .rule-box.warn {
+                border-color: var(--accent-yellow);
+                background: rgba(255, 204, 0, 0.06);
+            }
+            .rule-box.danger {
+                border-color: var(--accent-red);
+                background: rgba(255, 77, 109, 0.06);
+            }
+            .rule-box.success {
+                border-color: var(--accent-green);
+                background: rgba(57, 217, 138, 0.06);
+            }
+            .rule-box strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Arrow ── */
+            .arrow-flow {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 20px 0;
+                flex-wrap: wrap;
+            }
+            .flow-step {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+                min-width: 120px;
+            }
+            .flow-arrow {
+                color: var(--muted);
+                font-size: 18px;
+            }
+
+            /* ── Pattern Diagram ── */
+            .diagram {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 28px;
+                margin: 20px 0;
+            }
+            .diagram-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 20px;
+                font-family: var(--font-code);
+            }
+            .class-box {
+                display: inline-flex;
+                flex-direction: column;
+                border: 1px solid;
+                border-radius: 6px;
+                overflow: hidden;
+                font-family: var(--font-code);
+                font-size: 12px;
+                min-width: 160px;
+            }
+            .class-header {
+                padding: 8px 14px;
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+            }
+            .class-body {
+                padding: 10px 14px;
+                line-height: 1.9;
+            }
+            .class-abstract {
+                border-color: var(--accent-purple);
+            }
+            .class-abstract .class-header {
+                background: rgba(167, 139, 250, 0.15);
+                color: var(--accent-purple);
+            }
+            .class-concrete {
+                border-color: var(--accent-blue);
+            }
+            .class-concrete .class-header {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+            }
+            .class-factory {
+                border-color: var(--accent-yellow);
+            }
+            .class-factory .class-header {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+            }
+
+            .uml-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .uml-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .uml-arrow {
+                display: flex;
+                align-items: center;
+                padding-top: 28px;
+                color: var(--accent-green);
+                font-size: 22px;
+            }
+
+            /* ── Summary Card ── */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 8px;
+            }
+            .summary-item {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px;
+            }
+            .summary-item .icon {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+            .summary-item h4 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .summary-item p {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.6;
+            }
+
+            /* ── Callout ── */
+            .callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+                background: var(--surface2);
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            .callout .icon {
+                font-size: 18px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .callout p {
+                font-size: 13px;
+                line-height: 1.65;
+                color: var(--text);
+            }
+            .callout p strong {
+                color: var(--accent-yellow);
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 28px 0;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                margin: 16px 0;
+            }
+            th {
+                background: var(--surface2);
+                padding: 10px 14px;
+                text-align: left;
+                font-size: 11px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+                border-bottom: 1px solid var(--border);
+            }
+            td {
+                padding: 10px 14px;
+                border-bottom: 1px solid rgba(37, 42, 56, 0.5);
+                line-height: 1.5;
+            }
+            td strong {
+                color: var(--accent-yellow);
+            }
+            code {
+                font-family: var(--font-code);
+                font-size: 12px;
+                background: var(--surface2);
+                padding: 2px 6px;
+                border-radius: 3px;
+            }
+            .pill-yellow {
+                color: var(--accent-yellow);
+                border-color: rgba(255, 204, 0, 0.35);
+                background: rgba(255, 204, 0, 0.08);
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div class="chapter-tag">Clean Code · Ch.10</div>
+            </div>
+            <h1>Clean <span>Classes</span></h1>
+        </header>
+
+        <nav>
+            <button class="active" onclick="showPage(0)">① 응집도</button>
+            <button onclick="showPage(1)">② 변경과 SRP</button>
+            <button onclick="showPage(2)">③ 요약</button>
+        </nav>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 0: 응집도
+══════════════════════════════════════════════════ -->
+        <div class="page active" id="page0">
+            <div class="section-header">
+                <h2>클래스 응집도</h2>
+                <p>
+                    메서드 대부분이 공통된 인스턴스 변수를 사용할수록 응집도가
+                    높다.
+                </p>
+            </div>
+
+            <div class="rule-box">
+                <strong>응집도란 —</strong> 클래스 내부의 데이터와 메서드들이
+                하나의 논리적인 책임을 중심으로 서로 밀접하게 관련돼 있는 정도.
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">✅ 높은 응집도</span> Stack
+                </div>
+                <pre><span class="kw">public class</span> <span class="tp">Stack</span>
+{
+<span class="highlight-good">    <span class="kw">private int</span> _topOfStack = <span class="num">0</span>;
+    <span class="kw">private</span> <span class="tp">List</span>&lt;<span class="kw">int</span>&gt; _elements = <span class="kw">new</span> <span class="tp">List</span>&lt;<span class="kw">int</span>&gt;();</span>
+
+    <span class="kw">public int</span> <span class="fn">Size</span>() <span class="op">=></span> _topOfStack;
+
+    <span class="kw">public void</span> <span class="fn">Push</span>(<span class="kw">int</span> element)
+    {
+        _topOfStack++;
+        _elements.<span class="fn">Add</span>(element);
+    }
+
+    <span class="kw">public int</span> <span class="fn">Pop</span>()
+    {
+        <span class="kw">if</span> (_topOfStack == <span class="num">0</span>)
+            <span class="kw">throw new</span> <span class="tp">InvalidOperationException</span>(<span class="str">"Stack is empty."</span>);
+        <span class="kw">int</span> element = _elements[--_topOfStack];
+        _elements.<span class="fn">RemoveAt</span>(_topOfStack);
+        <span class="kw">return</span> element;
+    }
+}</pre>
+            </div>
+
+            <div class="callout">
+                <span class="icon">✅</span>
+                <p>
+                    Size(), Push(), Pop() 모두
+                    <strong>_topOfStack과 _elements를 함께 사용</strong>한다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">🎯</span>
+                <p>
+                    클래스가 오직 <strong>'스택'이라는 하나의 개념</strong>을
+                    중심으로 구성되어 있다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">📌</span>
+                <p>
+                    인스턴스 변수가 혼자 노는 경우가 없다.
+                    <strong>책임이 명확하다.</strong>
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-warn"
+                        >⚠️ 응집도가 낮아지는 시나리오</span
+                    >
+                </div>
+                <div class="callout">
+                    <span class="icon">⚠️</span>
+                    <p>
+                        큰 함수에서 일부를 별도 함수로 추출하려는데, 그 부분이
+                        지역 변수를 4개 사용한다. 이때 그 변수들을 클래스
+                        인스턴스 변수로 승격하면…
+                    </p>
+                </div>
+                <div class="arrow-flow">
+                    <div class="flow-step">지역 변수 4개</div>
+                    <div class="flow-arrow">→</div>
+                    <div
+                        class="flow-step"
+                        style="
+                            border-color: var(--accent-yellow);
+                            color: var(--accent-yellow);
+                        "
+                    >
+                        클래스 변수로 승격
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div
+                        class="flow-step"
+                        style="
+                            border-color: var(--accent-red);
+                            color: var(--accent-red);
+                        "
+                    >
+                        일부 함수만 사용하는 변수 발생
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div
+                        class="flow-step"
+                        style="
+                            border-color: var(--accent-red);
+                            color: var(--accent-red);
+                        "
+                    >
+                        응집도 저하
+                    </div>
+                    <div class="flow-arrow">→</div>
+                    <div
+                        class="flow-step"
+                        style="
+                            border-color: var(--accent-green);
+                            color: var(--accent-green);
+                        "
+                    >
+                        독립 클래스로 분리
+                    </div>
+                </div>
+            </div>
+
+            <div class="rule-box warn">
+                <strong>응집도가 낮아진다는 신호 —</strong> 일부 메서드만
+                사용하는 인스턴스 변수가 생기기 시작하면, 그 함수들을 독자적인
+                클래스로 분리할 때가 된 것이다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 1: 변경과 SRP
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page1">
+            <div class="section-header">
+                <h2>변경에 유연한 클래스 설계</h2>
+                <p>SRP를 지키면 변경이 필요한 지점에만 수정이 국소화된다.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-bad">❌ SRP 위반</span> 모든 SQL이
+                    한 클래스에
+                </div>
+                <pre><span class="kw">public class</span> <span class="tp">Sql</span> {
+    <span class="kw">public</span> <span class="fn">Sql</span>(<span class="tp">String</span> table, <span class="tp">Column</span>[] columns)
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">create</span>()
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">insert</span>(<span class="tp">Object</span>[] fields)
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">selectAll</span>()
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">findByKey</span>(<span class="tp">String</span> keyColumn, <span class="tp">String</span> keyValue)
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">select</span>(<span class="tp">Column</span> column, <span class="tp">String</span> pattern)
+    <span class="kw">public</span> <span class="tp">String</span> <span class="fn">preparedInsert</span>()
+    <span class="cm">// private 메서드들...</span>
+}</pre>
+            </div>
+
+            <div class="callout">
+                <span class="icon">❌</span>
+                <p>
+                    <strong>SRP 위반:</strong> SQL 생성과 관련된 모든 책임이
+                    하나의 클래스에 있다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">🔀</span>
+                <p>
+                    <strong>변경 이유 다수:</strong> CREATE 변경, INSERT 변경,
+                    SELECT 변경 — 각기 다른 이유로 이 클래스를 수정하게 된다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">🔗</span>
+                <p>
+                    <strong>강한 결합:</strong> insert(), select(),
+                    findByKey()는 다른 동작인데 같은 클래스에 묶여 있다.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">✅ STEP 1</span> abstract
+                    base class
+                </div>
+                <pre><span class="cm">// STEP 1: abstract base class</span>
+<span class="kw">public abstract class</span> <span class="tp">Sql</span>
+{
+    <span class="kw">protected readonly string</span> Table;
+    <span class="kw">protected readonly</span> <span class="tp">Column</span>[] Columns;
+
+    <span class="kw">protected</span> <span class="fn">Sql</span>(<span class="kw">string</span> table, <span class="tp">Column</span>[] columns)
+    {
+        Table = table;
+        Columns = columns;
+    }
+
+    <span class="kw">public abstract string</span> <span class="fn">Generate</span>();
+}</pre>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">✅ STEP 2</span> 역할별 구체
+                    클래스
+                </div>
+                <pre><span class="cm">// STEP 2: 역할별 구체 클래스</span>
+<span class="kw">public class</span> <span class="tp">CreateSql</span> : <span class="tp">Sql</span>
+{
+    <span class="kw">public</span> <span class="fn">CreateSql</span>(<span class="kw">string</span> table, <span class="tp">Column</span>[] columns) : <span class="fn">base</span>(table, columns) { }
+
+    <span class="kw">public override string</span> <span class="fn">Generate</span>()
+    {
+        <span class="kw">var</span> cols = <span class="tp">string</span>.<span class="fn">Join</span>(<span class="str">", "</span>, Columns.<span class="fn">Select</span>(c <span class="op">=></span> <span class="str">$"{c.Name} {c.Type}"</span>));
+        <span class="kw">return</span> <span class="str">$"CREATE TABLE {Table} ({cols});"</span>;
+    }
+}
+
+<span class="kw">public class</span> <span class="tp">InsertSql</span> : <span class="tp">Sql</span>
+{
+    <span class="kw">private readonly object</span>[] _values;
+
+    <span class="kw">public</span> <span class="fn">InsertSql</span>(<span class="kw">string</span> table, <span class="tp">Column</span>[] columns, <span class="kw">object</span>[] values)
+        : <span class="fn">base</span>(table, columns) { _values = values; }
+
+    <span class="kw">public override string</span> <span class="fn">Generate</span>()
+    {
+        <span class="kw">var</span> columnList = <span class="tp">string</span>.<span class="fn">Join</span>(<span class="str">", "</span>, Columns.<span class="fn">Select</span>(c <span class="op">=></span> c.Name));
+        <span class="kw">var</span> valueList = <span class="tp">string</span>.<span class="fn">Join</span>(<span class="str">", "</span>, _values.<span class="fn">Select</span>(v <span class="op">=></span> <span class="str">$"'{v}'"</span>));
+        <span class="kw">return</span> <span class="str">$"INSERT INTO {Table} ({columnList}) VALUES ({valueList});"</span>;
+    }
+}
+<span class="cm">// SelectSql, FindByKeySql 등도 동일하게...</span></pre>
+            </div>
+
+            <div class="rule-box success">
+                <strong>OCP 달성 —</strong> 새로운 SQL 구문을 추가할 때 기존
+                클래스는 건드리지 않고, 새 클래스만 추가하면 된다. 변경이 필요한
+                지점이 명확해진다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 2: 요약
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page2">
+            <div class="section-header">
+                <h2>Ch.10 핵심 원칙 요약</h2>
+                <p>응집도 높은 클래스 설계와 변경에 유연한 구조</p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="icon">🧲</div>
+                    <h4 style="color: var(--accent-blue)">높은 응집도</h4>
+                    <p>
+                        메서드 대부분이 같은 인스턴스 변수를 사용. 하나의
+                        목적으로 구성.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">✂️</div>
+                    <h4 style="color: var(--accent-green)">클래스 분리 신호</h4>
+                    <p>일부만 쓰는 변수가 생기면 독립 클래스로 분리하라.</p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🔒</div>
+                    <h4 style="color: var(--accent-purple)">
+                        변경에 닫혀 있어야
+                    </h4>
+                    <p>
+                        기존 클래스를 수정하지 않고 새 클래스로 확장 가능하게
+                        (OCP).
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🎯</div>
+                    <h4 style="color: var(--accent-yellow)">
+                        SRP — 변경 이유 하나
+                    </h4>
+                    <p>클래스는 오직 하나의 이유로만 변경되어야 한다.</p>
+                </div>
+            </div>
+
+            <div class="rule-box">
+                <strong>응집도 → 분리 → OCP —</strong> 응집도를 높이려다 보면
+                자연스럽게 클래스가 분리되고, 그 결과 변경에 유연한 설계가 된다.
+            </div>
+        </div>
+
+        <script>
+            function showPage(idx) {
+                document.querySelectorAll(".page").forEach((p, i) => {
+                    p.classList.toggle("active", i === idx);
+                });
+                document.querySelectorAll("nav button").forEach((b, i) => {
+                    b.classList.toggle("active", i === idx);
+                });
+            }
+        </script>
+    </body>
+</html>

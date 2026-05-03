@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Clean Code Ch.03 — Functions</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0d0f14;
+                --surface: #13161e;
+                --surface2: #1a1e2a;
+                --border: #252a38;
+                --text: #d4daf0;
+                --muted: #5a6280;
+                --accent-red: #ff4d6d;
+                --accent-green: #39d98a;
+                --accent-blue: #4d9fff;
+                --accent-yellow: #ffcc00;
+                --accent-purple: #a78bfa;
+                --font-code: "JetBrains Mono", monospace;
+                --font-ui: "Syne", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font-ui);
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                padding: 40px 48px 32px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: flex-end;
+                gap: 24px;
+                background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+            }
+            .chapter-tag {
+                font-family: var(--font-code);
+                font-size: 11px;
+                color: var(--accent-blue);
+                background: rgba(77, 159, 255, 0.1);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+                padding: 4px 10px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            header h1 {
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            header h1 span {
+                color: var(--accent-blue);
+            }
+
+            /* ── Nav Tabs ── */
+            nav {
+                display: flex;
+                gap: 0;
+                padding: 0 48px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+            }
+            nav button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 16px 20px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition:
+                    color 0.2s,
+                    border-color 0.2s;
+                letter-spacing: 0.02em;
+            }
+            nav button.active {
+                color: var(--text);
+                border-bottom-color: var(--accent-blue);
+            }
+            nav button:hover:not(.active) {
+                color: var(--text);
+            }
+
+            /* ── Content ── */
+            .page {
+                display: none;
+                padding: 40px 48px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .page.active {
+                display: block;
+                animation: fadeUp 0.3s ease;
+            }
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ── Section Header ── */
+            .section-header {
+                margin-bottom: 32px;
+            }
+            .section-header h2 {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                margin-bottom: 8px;
+            }
+            .section-header p {
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            /* ── Cards ── */
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .badge {
+                font-family: var(--font-code);
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            .badge-bad {
+                background: rgba(255, 77, 109, 0.15);
+                color: var(--accent-red);
+                border: 1px solid rgba(255, 77, 109, 0.3);
+            }
+            .badge-good {
+                background: rgba(57, 217, 138, 0.12);
+                color: var(--accent-green);
+                border: 1px solid rgba(57, 217, 138, 0.25);
+            }
+            .badge-info {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+            }
+            .badge-warn {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+                border: 1px solid rgba(255, 204, 0, 0.25);
+            }
+
+            /* ── Code Block ── */
+            pre {
+                font-family: var(--font-code);
+                font-size: 12.5px;
+                line-height: 1.7;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .kw {
+                color: #c792ea;
+            }
+            .fn {
+                color: #82aaff;
+            }
+            .str {
+                color: #c3e88d;
+            }
+            .cm {
+                color: #546e7a;
+                font-style: italic;
+            }
+            .tp {
+                color: #ffcb6b;
+            }
+            .op {
+                color: #89ddff;
+            }
+            .num {
+                color: #f78c6c;
+            }
+            .highlight {
+                background: rgba(255, 77, 109, 0.12);
+                border-left: 2px solid var(--accent-red);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+            .highlight-good {
+                background: rgba(57, 217, 138, 0.08);
+                border-left: 2px solid var(--accent-green);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+
+            /* ── Two Column ── */
+            .two-col {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .two-col {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ── Concept Pill ── */
+            .concept-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 16px;
+            }
+            .concept-pill {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid;
+                cursor: default;
+                transition: transform 0.15s;
+            }
+            .concept-pill:hover {
+                transform: scale(1.05);
+            }
+            .pill-red {
+                color: var(--accent-red);
+                border-color: rgba(255, 77, 109, 0.35);
+                background: rgba(255, 77, 109, 0.08);
+            }
+            .pill-blue {
+                color: var(--accent-blue);
+                border-color: rgba(77, 159, 255, 0.35);
+                background: rgba(77, 159, 255, 0.08);
+            }
+            .pill-green {
+                color: var(--accent-green);
+                border-color: rgba(57, 217, 138, 0.35);
+                background: rgba(57, 217, 138, 0.08);
+            }
+            .pill-purple {
+                color: var(--accent-purple);
+                border-color: rgba(167, 139, 250, 0.35);
+                background: rgba(167, 139, 250, 0.08);
+            }
+
+            /* ── Rule Box ── */
+            .rule-box {
+                border-left: 3px solid var(--accent-blue);
+                padding: 14px 18px;
+                background: rgba(77, 159, 255, 0.06);
+                border-radius: 0 8px 8px 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                margin: 16px 0;
+            }
+            .rule-box.warn {
+                border-color: var(--accent-yellow);
+                background: rgba(255, 204, 0, 0.06);
+            }
+            .rule-box.danger {
+                border-color: var(--accent-red);
+                background: rgba(255, 77, 109, 0.06);
+            }
+            .rule-box.success {
+                border-color: var(--accent-green);
+                background: rgba(57, 217, 138, 0.06);
+            }
+            .rule-box strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Arrow ── */
+            .arrow-flow {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 20px 0;
+                flex-wrap: wrap;
+            }
+            .flow-step {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+                min-width: 120px;
+            }
+            .flow-arrow {
+                color: var(--muted);
+                font-size: 18px;
+            }
+
+            /* ── Pattern Diagram ── */
+            .diagram {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 28px;
+                margin: 20px 0;
+            }
+            .diagram-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 20px;
+                font-family: var(--font-code);
+            }
+            .class-box {
+                display: inline-flex;
+                flex-direction: column;
+                border: 1px solid;
+                border-radius: 6px;
+                overflow: hidden;
+                font-family: var(--font-code);
+                font-size: 12px;
+                min-width: 160px;
+            }
+            .class-header {
+                padding: 8px 14px;
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+            }
+            .class-body {
+                padding: 10px 14px;
+                line-height: 1.9;
+            }
+            .class-abstract {
+                border-color: var(--accent-purple);
+            }
+            .class-abstract .class-header {
+                background: rgba(167, 139, 250, 0.15);
+                color: var(--accent-purple);
+            }
+            .class-concrete {
+                border-color: var(--accent-blue);
+            }
+            .class-concrete .class-header {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+            }
+            .class-factory {
+                border-color: var(--accent-yellow);
+            }
+            .class-factory .class-header {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+            }
+
+            .uml-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .uml-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .uml-arrow {
+                display: flex;
+                align-items: center;
+                padding-top: 28px;
+                color: var(--accent-green);
+                font-size: 22px;
+            }
+
+            /* ── Summary Card ── */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 8px;
+            }
+            .summary-item {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px;
+            }
+            .summary-item .icon {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+            .summary-item h4 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .summary-item p {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.6;
+            }
+
+            /* ── Callout ── */
+            .callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+                background: var(--surface2);
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            .callout .icon {
+                font-size: 18px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .callout p {
+                font-size: 13px;
+                line-height: 1.65;
+                color: var(--text);
+            }
+            .callout p strong {
+                color: var(--accent-yellow);
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 28px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div class="chapter-tag">Clean Code · Ch.03</div>
+            </div>
+            <h1>Clean <span>Functions</span></h1>
+        </header>
+
+        <nav>
+            <button class="active" onclick="showPage(0)">① Switch & OCP</button>
+            <button onclick="showPage(1)">② Flag 인수</button>
+            <button onclick="showPage(2)">③ Side Effects</button>
+            <button onclick="showPage(3)">④ Try-Catch 분리</button>
+            <button onclick="showPage(4)">⑤ 전체 요약</button>
+        </nav>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 0: Switch & OCP + Factory
+══════════════════════════════════════════════════ -->
+        <div class="page active" id="page0">
+            <div class="section-header">
+                <h2>Switch문의 함정 → Factory 패턴</h2>
+                <p>
+                    switch문이 내포하는 SRP/OCP 위반과 Abstract Class +
+                    Factory로 해결하는 방법
+                </p>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad">❌ BEFORE</span> 문제 코드
+                    </div>
+                    <pre><span class="kw">public</span> <span class="tp">Money</span> <span class="fn">CalculatePay</span>(<span class="tp">Employee</span> e)
+{
+<span class="highlight">  <span class="kw">switch</span> (e.Type)
+  {
+    <span class="kw">case</span> <span class="tp">EmployeeType</span>.Commissioned:
+      <span class="kw">return</span> <span class="fn">CalculateCommissionedPay</span>(e);
+    <span class="kw">case</span> <span class="tp">EmployeeType</span>.Hourly:
+      <span class="kw">return</span> <span class="fn">CalculateHourlyPay</span>(e);
+    <span class="kw">case</span> <span class="tp">EmployeeType</span>.Salaried:
+      <span class="kw">return</span> <span class="fn">CalculateSalariedPay</span>(e);
+    <span class="kw">default</span>:
+      <span class="kw">throw new</span> <span class="fn">InvalidEmployeeTypeException</span>(e.Type);
+  }</span>
+}</pre>
+                    <div class="concept-row">
+                        <span class="concept-pill pill-red">SRP 위반</span>
+                        <span class="concept-pill pill-red">OCP 위반</span>
+                        <span class="concept-pill pill-red"
+                            >추상화 수준 혼재</span
+                        >
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-good">✅ AFTER</span> 해결:
+                        추상 클래스
+                    </div>
+                    <pre><span class="kw">public abstract class</span> <span class="tp">Employee</span>
+{
+<span class="highlight-good">  <span class="kw">public abstract bool</span> <span class="fn">IsPayday</span>();
+  <span class="kw">public abstract</span> <span class="tp">Money</span> <span class="fn">CalculatePay</span>();
+  <span class="kw">public abstract void</span> <span class="fn">DeliverPay</span>(<span class="tp">Money</span> pay);</span>
+}
+
+<span class="kw">public class</span> <span class="tp">CommissionedEmployee</span> : <span class="tp">Employee</span>
+{
+  <span class="kw">public override</span> <span class="tp">Money</span> <span class="fn">CalculatePay</span>() { <span class="cm">/* ... */</span> }
+}
+
+<span class="cm">// ProcessPayroll은 절대 변하지 않음 ✓</span>
+<span class="kw">public void</span> <span class="fn">ProcessPayroll</span>(<span class="tp">Employee</span> e)
+{
+  <span class="kw">var</span> pay = e.<span class="fn">CalculatePay</span>();
+}</pre>
+                    <div class="concept-row">
+                        <span class="concept-pill pill-green">OCP 준수</span>
+                        <span class="concept-pill pill-green">단일 책임</span>
+                        <span class="concept-pill pill-green">다형성 활용</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info">Factory Pattern</span> 객체
+                    생성 책임 위임
+                </div>
+                <pre><span class="kw">public interface</span> <span class="tp">IEmployeeFactory</span>
+{
+  <span class="tp">Employee</span> <span class="fn">MakeEmployee</span>(<span class="tp">EmployeeRecord</span> record);
+}
+
+<span class="kw">public class</span> <span class="tp">EmployeeFactory</span> : <span class="tp">IEmployeeFactory</span>
+{
+  <span class="kw">public</span> <span class="tp">Employee</span> <span class="fn">MakeEmployee</span>(<span class="tp">EmployeeRecord</span> record)
+  {
+    <span class="kw">return</span> record.Type <span class="kw">switch</span>
+    {
+<span class="highlight-good">      <span class="tp">EmployeeType</span>.Commissioned <span class="op">=></span> <span class="kw">new</span> <span class="fn">CommissionedEmployee</span>(record),
+      <span class="tp">EmployeeType</span>.Hourly       <span class="op">=></span> <span class="kw">new</span> <span class="fn">HourlyEmployee</span>(record),
+      <span class="tp">EmployeeType</span>.Salaried     <span class="op">=></span> <span class="kw">new</span> <span class="fn">SalariedEmployee</span>(record),
+      _                          <span class="op">=></span> <span class="kw">throw new</span> <span class="fn">InvalidEmployeeTypeException</span>(record.Type)</span>
+    };
+  }
+}</pre>
+            </div>
+
+            <div class="diagram">
+                <div class="diagram-title">UML — Abstract + Factory 구조</div>
+                <div class="uml-row">
+                    <div class="class-box class-factory">
+                        <div class="class-header">
+                            «interface» IEmployeeFactory
+                        </div>
+                        <div class="class-body">MakeEmployee(record)</div>
+                    </div>
+                    <div class="uml-arrow">→</div>
+                    <div class="class-box class-abstract">
+                        <div class="class-header">«abstract» Employee</div>
+                        <div class="class-body">
+                            IsPayday()<br />CalculatePay()<br />DeliverPay(pay)
+                        </div>
+                    </div>
+                    <div class="uml-arrow">◁</div>
+                    <div class="uml-group">
+                        <div class="class-box class-concrete">
+                            <div class="class-header">CommissionedEmployee</div>
+                            <div class="class-body">
+                                override CalculatePay()
+                            </div>
+                        </div>
+                        <div class="class-box class-concrete">
+                            <div class="class-header">HourlyEmployee</div>
+                            <div class="class-body">
+                                override CalculatePay()
+                            </div>
+                        </div>
+                        <div class="class-box class-concrete">
+                            <div class="class-header">SalariedEmployee</div>
+                            <div class="class-body">
+                                override CalculatePay()
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rule-box success">
+                <strong>핵심 인사이트 —</strong> switch는
+                <em>단 한 곳</em>(Factory)에만 존재해야 한다. 이후 새 타입을
+                추가할 때 <strong>기존 로직은 수정하지 않고</strong> Employee
+                구현체 추가 + Factory 한 줄 추가만으로 끝난다. 이것이 OCP.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 1: Flag Arguments
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page1">
+            <div class="section-header">
+                <h2>플래그 인수는 추하다</h2>
+                <p>
+                    boolean 파라미터가 있다는 건, 함수가 두 가지 일을 한다는
+                    신호다.
+                </p>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad">❌ BEFORE</span>
+                    </div>
+                    <pre><span class="kw">public void</span> <span class="fn">SaveFile</span>(<span class="tp">string</span> path, <span class="kw">bool</span> overwrite)
+{
+<span class="highlight">  <span class="kw">if</span> (overwrite)
+    <span class="fn">OverwriteFile</span>(path);
+  <span class="kw">else</span>
+    <span class="fn">CreateNewFile</span>(path);</span>
+}</pre>
+                    <div class="callout" style="margin-top: 14px">
+                        <span class="icon">🔍</span>
+                        <p>
+                            호출부에서
+                            <code>SaveFile(path, <strong>true</strong>)</code>를
+                            보는 순간, 독자는
+                            <strong>true가 뭘 의미하는지</strong> 함수 내부로
+                            들어가 확인해야 한다.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-good">✅ AFTER</span> 두 함수로
+                        분리
+                    </div>
+                    <pre><span class="kw">public void</span> <span class="fn">OverwriteFile</span>(<span class="tp">string</span> path)
+{
+<span class="highlight-good">  <span class="cm">// 덮어쓰기 전용 로직</span></span>
+}
+
+<span class="kw">public void</span> <span class="fn">CreateNewFile</span>(<span class="tp">string</span> path)
+{
+<span class="highlight-good">  <span class="cm">// 신규 생성 전용 로직</span></span>
+}</pre>
+                    <div class="callout" style="margin-top: 14px">
+                        <span class="icon">✅</span>
+                        <p>
+                            함수 이름만 봐도 <strong>의도를 즉시 파악</strong>할
+                            수 있다. 내부로 들어갈 필요 없음.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">왜 추한가? — 두 가지 이유</div>
+                <div class="two-col">
+                    <div>
+                        <div class="rule-box danger">
+                            <strong>① SRP 위반</strong><br />
+                            플래그 = 내부에 if (flag) 분기 =
+                            <strong>두 가지 행동</strong>. 하나의 함수가 하나의
+                            책임을 가져야 한다는 원칙에 어긋난다.
+                        </div>
+                    </div>
+                    <div>
+                        <div class="rule-box warn">
+                            <strong>② 추상화 수준 혼재</strong><br />
+                            SaveFile은 고수준 이름인데, 내부는 overwrite냐
+                            아니냐는 <strong>저수준 분기</strong>가 공존.
+                            내려가기 규칙 위반.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow-flow">
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-red);
+                        color: var(--accent-red);
+                    "
+                >
+                    SaveFile(path, true)
+                </div>
+                <div class="flow-arrow">🚫 →</div>
+                <div class="flow-step">OverwriteFile(path)</div>
+                <div class="flow-arrow" style="color: var(--accent-green)">
+                    +
+                </div>
+                <div class="flow-step">CreateNewFile(path)</div>
+            </div>
+
+            <div class="rule-box">
+                <strong>Rule —</strong> 함수에 bool/enum 파라미터가 보이면 즉시
+                의심하라. 두 함수로 쪼개야 할 신호일 가능성이 높다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 2: Side Effects
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page2">
+            <div class="section-header">
+                <h2>Side Effects — 숨겨진 결합</h2>
+                <p>
+                    함수 이름이 약속하지 않은 일을 몰래 하는 것. Temporal
+                    Coupling의 원인.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-bad">❌ 문제 코드</span>
+                    CheckPassword에 숨겨진 Side Effect
+                </div>
+                <pre><span class="kw">public bool</span> <span class="fn">CheckPassword</span>(<span class="tp">string</span> userName, <span class="tp">string</span> password)
+{
+  <span class="kw">var</span> user = <span class="tp">UserGateway</span>.<span class="fn">FindByName</span>(userName);
+  <span class="kw">if</span> (user != <span class="tp">User</span>.Null)
+  {
+    <span class="tp">string</span> codedPhrase = user.<span class="fn">GetPhraseEncodedByPassword</span>();
+    <span class="tp">string</span> phrase = _cryptographer.<span class="fn">Decrypt</span>(codedPhrase, password);
+
+    <span class="kw">if</span> (phrase == <span class="str">"Valid Password"</span>)
+    {
+<span class="highlight">      Session.<span class="fn">Initialize</span>();  <span class="cm">// ← 💣 Side Effect!</span></span>
+      <span class="kw">return true</span>;
+    }
+  }
+  <span class="kw">return false</span>;
+}</pre>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">문제 분석</div>
+                    <div class="callout">
+                        <span class="icon">🎭</span>
+                        <p>
+                            <strong>CheckPassword</strong>라는 이름은 "비밀번호
+                            확인"만 약속한다. 그런데 내부에서
+                            <strong>Session을 초기화</strong>한다 → 함수 이름이
+                            거짓말을 하고 있음.
+                        </p>
+                    </div>
+                    <div class="callout">
+                        <span class="icon">⏰</span>
+                        <p>
+                            <strong>Temporal Coupling:</strong> 이 함수는 세션
+                            초기화가 허용된 시점에만 호출해야 한다. 세션이 이미
+                            있는 상태에서 호출하면 세션이 날아간다. 호출
+                            <strong>순서가 강제</strong>된다.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">해결 방향</div>
+                    <pre><span class="cm">// 방법 1: 이름에 명시</span>
+<span class="kw">public bool</span> <span class="fn">CheckPasswordAndInitSession</span>(
+  <span class="tp">string</span> user, <span class="tp">string</span> pw)
+
+<span class="cm">// 방법 2: 책임 분리 (권장)</span>
+<span class="kw">public bool</span> <span class="fn">CheckPassword</span>(<span class="tp">string</span> user, <span class="tp">string</span> pw)
+{
+  <span class="cm">// 순수하게 검증만</span>
+}
+
+<span class="kw">public void</span> <span class="fn">InitializeSession</span>()
+{
+  Session.<span class="fn">Initialize</span>();
+}</pre>
+                    <div class="concept-row">
+                        <span class="concept-pill pill-green">CQS 원칙</span>
+                        <span class="concept-pill pill-blue"
+                            >Command / Query 분리</span
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <div class="rule-box warn">
+                <strong>CQS (Command-Query Separation) —</strong> 상태를
+                <em>변경</em>하는 함수(Command)와 값을 <em>반환</em>하는
+                함수(Query)를 분리하라. CheckPassword는 Query인데 Command를
+                숨기고 있다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 3: Try-Catch Extraction
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page3">
+            <div class="section-header">
+                <h2>Try-Catch 블록 뽑아내기</h2>
+                <p>
+                    에러 처리와 비즈니스 로직은 서로 다른 레벨의 관심사다. 섞지
+                    마라.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">✅ 분리된 구조</span>
+                </div>
+                <pre><span class="cm">// 에러 처리 전담 — "어떻게 실패를 다룰까?"</span>
+<span class="kw">public void</span> <span class="fn">delete</span>(<span class="tp">Page</span> page)
+{
+<span class="highlight-good">  <span class="kw">try</span>
+  {
+    <span class="fn">deletePageAndAllReferences</span>(page);
+  }
+  <span class="kw">catch</span> (<span class="tp">Exception</span> e)
+  {
+    <span class="fn">logError</span>(e);
+  }</span>
+}
+
+<span class="cm">// 실제 로직 전담 — "무엇을 할까?"</span>
+<span class="kw">private void</span> <span class="fn">deletePageAndAllReferences</span>(<span class="tp">Page</span> page) <span class="kw">throws</span> <span class="tp">Exception</span>
+{
+<span class="highlight-good">  <span class="fn">deletePage</span>(page);
+  registry.<span class="fn">deleteReference</span>(page.name);
+  configKeys.<span class="fn">deleteKey</span>(page.name.<span class="fn">makeKey</span>());</span>
+}
+
+<span class="cm">// 로그 처리 전담</span>
+<span class="kw">private void</span> <span class="fn">logError</span>(<span class="tp">Exception</span> e)
+{
+  logger.<span class="fn">log</span>(e.<span class="fn">getMessage</span>());
+}</pre>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">각 함수의 단일 책임</div>
+                    <div class="callout">
+                        <span class="icon">🔴</span>
+                        <p>
+                            <code>delete()</code> →
+                            <strong>에러 처리 조율</strong>. try-catch만 존재.
+                            실제 동작 모름.
+                        </p>
+                    </div>
+                    <div class="callout">
+                        <span class="icon">🟢</span>
+                        <p>
+                            <code>deletePageAndAllReferences()</code> →
+                            <strong>비즈니스 로직</strong>. 예외를 throw만 함.
+                            처리 방법 모름.
+                        </p>
+                    </div>
+                    <div class="callout">
+                        <span class="icon">🔵</span>
+                        <p>
+                            <code>logError()</code> →
+                            <strong>로그 처리</strong>. logger 교체/변경 시
+                            여기만 수정.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">왜 이렇게 나눠야 하나?</div>
+                    <div class="rule-box">
+                        try-catch 자체가
+                        <strong>정상 흐름과 예외 흐름을 섞는</strong> 구조다. 이
+                        안에 비즈니스 로직까지 넣으면 함수가 두 가지 이상을
+                        책임지게 된다.
+                    </div>
+                    <div class="rule-box success">
+                        <strong>추상화 레벨 통일 —</strong><br />
+                        delete()는 "삭제하고 에러 처리"<br />
+                        deletePageAndAllReferences()는 "삭제 상세"<br />
+                        각 함수는 <strong>같은 레벨</strong>의 이야기만 한다.
+                    </div>
+                </div>
+            </div>
+
+            <div class="arrow-flow">
+                <div class="flow-step">delete(page)</div>
+                <div class="flow-arrow">→ 위임</div>
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-green);
+                        color: var(--accent-green);
+                    "
+                >
+                    deletePageAndAll<br />References(page)
+                </div>
+                <div class="flow-arrow">→ 실패 시</div>
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-red);
+                        color: var(--accent-red);
+                    "
+                >
+                    logError(e)
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 4: 전체 요약
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page4">
+            <div class="section-header">
+                <h2>Ch.03 핵심 원칙 요약</h2>
+                <p>함수를 작고, 명확하고, 단일 책임으로 만드는 네 가지 규칙</p>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="icon">🔀</div>
+                    <h4 style="color: var(--accent-purple)">
+                        Switch → Factory
+                    </h4>
+                    <p>
+                        switch는 단 한 곳, Factory에만. 추상 클래스 + 다형성으로
+                        OCP를 지킨다. 새 타입 추가 = 기존 코드 무수정.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🚩</div>
+                    <h4 style="color: var(--accent-red)">Flag 인수 제거</h4>
+                    <p>
+                        bool 파라미터 = 함수가 두 가지 일을 한다는 신호. 두 개의
+                        명확한 함수로 분리하라.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">👻</div>
+                    <h4 style="color: var(--accent-yellow)">
+                        Side Effect 제거
+                    </h4>
+                    <p>
+                        함수 이름이 약속하지 않은 일을 하면 Temporal Coupling이
+                        생긴다. Command/Query를 분리하라 (CQS).
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🧱</div>
+                    <h4 style="color: var(--accent-blue)">Try-Catch 분리</h4>
+                    <p>
+                        에러 처리와 비즈니스 로직은 다른 관심사. try-catch를
+                        갖는 함수는 그것만 해야 한다.
+                    </p>
+                </div>
+            </div>
+
+            <hr />
+
+            <div class="card" style="margin-top: 8px">
+                <div class="card-title">핵심 원칙 연결 지도</div>
+                <div class="two-col">
+                    <div>
+                        <div class="rule-box">
+                            <strong>SRP (Single Responsibility)</strong><br />
+                            플래그 인수, Switch 남용, Side Effect 모두 SRP를
+                            위반한다. 함수가 하나의 이유로만 변경되어야 한다.
+                        </div>
+                        <div class="rule-box">
+                            <strong>OCP (Open/Closed Principle)</strong><br />
+                            Switch를 Factory로 감싸면, 새 타입이 추가돼도 기존
+                            로직은 닫혀(수정 불가) 있고 확장만 열려 있다.
+                        </div>
+                    </div>
+                    <div>
+                        <div class="rule-box warn">
+                            <strong>추상화 수준 통일</strong><br />
+                            하나의 함수 안에서 고수준 이름(SaveFile,
+                            CheckPassword)과 저수준 분기(if overwrite,
+                            Session.Initialize)가 공존하면 읽기 어렵다.
+                        </div>
+                        <div class="rule-box success">
+                            <strong>함수 = 한 가지 일</strong><br />
+                            함수의 크기와 역할을 줄이면 테스트, 재사용, 독해
+                            모두 쉬워진다. 이름이 모든 것을 설명해야 한다.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">빠른 체크리스트</div>
+                <div
+                    style="
+                        display: flex;
+                        flex-direction: column;
+                        gap: 10px;
+                        font-family: var(--font-code);
+                        font-size: 13px;
+                    "
+                >
+                    <label
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                            cursor: pointer;
+                        "
+                        ><input type="checkbox" /> 함수에 bool/enum 파라미터가
+                        있는가? → 두 함수로 분리 검토</label
+                    >
+                    <label
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                            cursor: pointer;
+                        "
+                        ><input type="checkbox" /> switch문이 여러 곳에 흩어져
+                        있는가? → Factory로 집중</label
+                    >
+                    <label
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                            cursor: pointer;
+                        "
+                        ><input type="checkbox" /> 함수 이름이 약속하지 않은
+                        일을 하는가? → Side Effect 제거</label
+                    >
+                    <label
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                            cursor: pointer;
+                        "
+                        ><input type="checkbox" /> try-catch 안에 비즈니스
+                        로직이 있는가? → 분리</label
+                    >
+                    <label
+                        style="
+                            display: flex;
+                            align-items: center;
+                            gap: 10px;
+                            cursor: pointer;
+                        "
+                        ><input type="checkbox" /> 새 타입 추가 시 기존 함수를
+                        수정해야 하는가? → OCP 위반</label
+                    >
+                </div>
+            </div>
+        </div>
+
+        <script>
+            function showPage(idx) {
+                document.querySelectorAll(".page").forEach((p, i) => {
+                    p.classList.toggle("active", i === idx);
+                });
+                document.querySelectorAll("nav button").forEach((b, i) => {
+                    b.classList.toggle("active", i === idx);
+                });
+            }
+        </script>
+    </body>
+</html>

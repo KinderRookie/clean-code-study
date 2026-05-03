@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Clean Code Ch.05 — 형식</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0d0f14;
+                --surface: #13161e;
+                --surface2: #1a1e2a;
+                --border: #252a38;
+                --text: #d4daf0;
+                --muted: #5a6280;
+                --accent-red: #ff4d6d;
+                --accent-green: #39d98a;
+                --accent-blue: #4d9fff;
+                --accent-yellow: #ffcc00;
+                --accent-purple: #a78bfa;
+                --font-code: "JetBrains Mono", monospace;
+                --font-ui: "Syne", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font-ui);
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                padding: 40px 48px 32px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: flex-end;
+                gap: 24px;
+                background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+            }
+            .chapter-tag {
+                font-family: var(--font-code);
+                font-size: 11px;
+                color: var(--accent-blue);
+                background: rgba(77, 159, 255, 0.1);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+                padding: 4px 10px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            header h1 {
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            header h1 span {
+                color: var(--accent-blue);
+            }
+
+            /* ── Nav Tabs ── */
+            nav {
+                display: flex;
+                gap: 0;
+                padding: 0 48px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+            }
+            nav button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 16px 20px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition:
+                    color 0.2s,
+                    border-color 0.2s;
+                letter-spacing: 0.02em;
+            }
+            nav button.active {
+                color: var(--text);
+                border-bottom-color: var(--accent-blue);
+            }
+            nav button:hover:not(.active) {
+                color: var(--text);
+            }
+
+            /* ── Content ── */
+            .page {
+                display: none;
+                padding: 40px 48px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .page.active {
+                display: block;
+                animation: fadeUp 0.3s ease;
+            }
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ── Section Header ── */
+            .section-header {
+                margin-bottom: 32px;
+            }
+            .section-header h2 {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                margin-bottom: 8px;
+            }
+            .section-header p {
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            /* ── Cards ── */
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .badge {
+                font-family: var(--font-code);
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            .badge-bad {
+                background: rgba(255, 77, 109, 0.15);
+                color: var(--accent-red);
+                border: 1px solid rgba(255, 77, 109, 0.3);
+            }
+            .badge-good {
+                background: rgba(57, 217, 138, 0.12);
+                color: var(--accent-green);
+                border: 1px solid rgba(57, 217, 138, 0.25);
+            }
+            .badge-info {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+            }
+            .badge-warn {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+                border: 1px solid rgba(255, 204, 0, 0.25);
+            }
+
+            /* ── Code Block ── */
+            pre {
+                font-family: var(--font-code);
+                font-size: 12.5px;
+                line-height: 1.7;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .kw {
+                color: #c792ea;
+            }
+            .fn {
+                color: #82aaff;
+            }
+            .str {
+                color: #c3e88d;
+            }
+            .cm {
+                color: #546e7a;
+                font-style: italic;
+            }
+            .tp {
+                color: #ffcb6b;
+            }
+            .op {
+                color: #89ddff;
+            }
+            .num {
+                color: #f78c6c;
+            }
+            .highlight {
+                background: rgba(255, 77, 109, 0.12);
+                border-left: 2px solid var(--accent-red);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+            .highlight-good {
+                background: rgba(57, 217, 138, 0.08);
+                border-left: 2px solid var(--accent-green);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+
+            /* ── Two Column ── */
+            .two-col {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .two-col {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ── Concept Pill ── */
+            .concept-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 16px;
+            }
+            .concept-pill {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid;
+                cursor: default;
+                transition: transform 0.15s;
+            }
+            .concept-pill:hover {
+                transform: scale(1.05);
+            }
+            .pill-red {
+                color: var(--accent-red);
+                border-color: rgba(255, 77, 109, 0.35);
+                background: rgba(255, 77, 109, 0.08);
+            }
+            .pill-blue {
+                color: var(--accent-blue);
+                border-color: rgba(77, 159, 255, 0.35);
+                background: rgba(77, 159, 255, 0.08);
+            }
+            .pill-green {
+                color: var(--accent-green);
+                border-color: rgba(57, 217, 138, 0.35);
+                background: rgba(57, 217, 138, 0.08);
+            }
+            .pill-purple {
+                color: var(--accent-purple);
+                border-color: rgba(167, 139, 250, 0.35);
+                background: rgba(167, 139, 250, 0.08);
+            }
+
+            /* ── Rule Box ── */
+            .rule-box {
+                border-left: 3px solid var(--accent-blue);
+                padding: 14px 18px;
+                background: rgba(77, 159, 255, 0.06);
+                border-radius: 0 8px 8px 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                margin: 16px 0;
+            }
+            .rule-box.warn {
+                border-color: var(--accent-yellow);
+                background: rgba(255, 204, 0, 0.06);
+            }
+            .rule-box.danger {
+                border-color: var(--accent-red);
+                background: rgba(255, 77, 109, 0.06);
+            }
+            .rule-box.success {
+                border-color: var(--accent-green);
+                background: rgba(57, 217, 138, 0.06);
+            }
+            .rule-box strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Arrow ── */
+            .arrow-flow {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 20px 0;
+                flex-wrap: wrap;
+            }
+            .flow-step {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+                min-width: 120px;
+            }
+            .flow-arrow {
+                color: var(--muted);
+                font-size: 18px;
+            }
+
+            /* ── Pattern Diagram ── */
+            .diagram {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 28px;
+                margin: 20px 0;
+            }
+            .diagram-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 20px;
+                font-family: var(--font-code);
+            }
+            .class-box {
+                display: inline-flex;
+                flex-direction: column;
+                border: 1px solid;
+                border-radius: 6px;
+                overflow: hidden;
+                font-family: var(--font-code);
+                font-size: 12px;
+                min-width: 160px;
+            }
+            .class-header {
+                padding: 8px 14px;
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+            }
+            .class-body {
+                padding: 10px 14px;
+                line-height: 1.9;
+            }
+            .class-abstract {
+                border-color: var(--accent-purple);
+            }
+            .class-abstract .class-header {
+                background: rgba(167, 139, 250, 0.15);
+                color: var(--accent-purple);
+            }
+            .class-concrete {
+                border-color: var(--accent-blue);
+            }
+            .class-concrete .class-header {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+            }
+            .class-factory {
+                border-color: var(--accent-yellow);
+            }
+            .class-factory .class-header {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+            }
+
+            .uml-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .uml-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .uml-arrow {
+                display: flex;
+                align-items: center;
+                padding-top: 28px;
+                color: var(--accent-green);
+                font-size: 22px;
+            }
+
+            /* ── Summary Card ── */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 8px;
+            }
+            .summary-item {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px;
+            }
+            .summary-item .icon {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+            .summary-item h4 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .summary-item p {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.6;
+            }
+
+            /* ── Callout ── */
+            .callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+                background: var(--surface2);
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            .callout .icon {
+                font-size: 18px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .callout p {
+                font-size: 13px;
+                line-height: 1.65;
+                color: var(--text);
+            }
+            .callout p strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Table ── */
+            .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                margin: 16px 0;
+            }
+            .data-table th {
+                font-family: var(--font-code);
+                font-size: 11px;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+                border-bottom: 1px solid var(--border);
+                padding: 10px 14px;
+                text-align: left;
+            }
+            .data-table td {
+                padding: 12px 14px;
+                border-bottom: 1px solid var(--border);
+                line-height: 1.55;
+                vertical-align: top;
+            }
+            .data-table tr:last-child td {
+                border-bottom: none;
+            }
+            .data-table td:first-child {
+                font-family: var(--font-code);
+                font-size: 12px;
+                font-weight: 700;
+                color: var(--accent-blue);
+                white-space: nowrap;
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 28px 0;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div class="chapter-tag">Clean Code · Ch.05</div>
+            </div>
+            <h1>형식: <span>상수의 위치</span></h1>
+        </header>
+
+        <nav>
+            <button class="active" onclick="showPage(0)">
+                ① 문제: 하드코딩된 상수
+            </button>
+            <button onclick="showPage(1)">② 해결: 상위에서 전달</button>
+            <button onclick="showPage(2)">③ 요약</button>
+        </nav>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 0: 문제: 하드코딩된 상수
+══════════════════════════════════════════════════ -->
+        <div class="page active" id="page0">
+            <div class="section-header">
+                <h2>하드코딩된 상수의 함정</h2>
+                <p>
+                    기본값을 하위 함수 안에 박아두면 문맥도, 재사용성도 모두
+                    잃는다.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-bad">❌ 나쁜 예</span>
+                </div>
+                <pre><span class="kw">private</span> <span class="tp">string</span> <span class="fn">GetPageNameOrDefault</span>(<span class="tp">HttpRequest</span> request)
+{
+    <span class="kw">var</span> pageName <span class="op">=</span> request.Query[<span class="str">"page"</span>];
+    <span class="kw">if</span> (<span class="tp">string</span>.<span class="fn">IsNullOrWhiteSpace</span>(pageName))
+<span class="highlight">        pageName <span class="op">=</span> <span class="str">"HomePage"</span>; <span class="cm">// ← 하드코딩된 상수!</span>
+</span>    <span class="kw">return</span> pageName;
+}</pre>
+            </div>
+
+            <div class="callout">
+                <span class="icon">❓</span>
+                <p>
+                    <strong>문맥 없음:</strong> "HomePage"가 왜 기본값인지,
+                    어디서 온 값인지 이 함수만 봐서는 알 수 없다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">🔒</span>
+                <p>
+                    <strong>재사용 불가:</strong> 다른 기본값이 필요한 곳에서 이
+                    함수를 쓸 수 없다. 무조건 "HomePage"다.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">🔀</span>
+                <p>
+                    <strong>책임 역전:</strong> 기본값을 결정하는 것은 호출하는
+                    쪽의 책임인데, 하위 함수가 그 책임을 빼앗고 있다.
+                </p>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 1: 해결: 상위에서 전달
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page1">
+            <div class="section-header">
+                <h2>기본값은 상위 계층이 결정한다</h2>
+                <p>하위 함수는 로직만, 기본값 결정은 호출하는 쪽에 맡겨라.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">✅ 좋은 예</span>
+                </div>
+                <pre><span class="kw">public</span> <span class="tp">IActionResult</span> <span class="fn">HandleRequest</span>(<span class="tp">HttpRequest</span> request)
+{
+<span class="highlight-good">    <span class="tp">string</span> pageName <span class="op">=</span> <span class="fn">GetPageNameOrDefault</span>(request, <span class="str">"HomePage"</span>);
+</span>    <span class="kw">var</span> html <span class="op">=</span> <span class="fn">RenderPage</span>(pageName);
+    <span class="kw">return</span> <span class="fn">Content</span>(html, <span class="str">"text/html"</span>);
+}
+
+<span class="kw">private</span> <span class="tp">string</span> <span class="fn">GetPageNameOrDefault</span>(<span class="tp">HttpRequest</span> request, <span class="tp">string</span> defaultPageName)
+{
+    <span class="kw">var</span> pageName <span class="op">=</span> request.Query[<span class="str">"page"</span>];
+    <span class="kw">return</span> <span class="tp">string</span>.<span class="fn">IsNullOrWhiteSpace</span>(pageName) <span class="op">?</span> defaultPageName <span class="op">:</span> pageName;
+}</pre>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>장점</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>문맥 노출</td>
+                        <td>
+                            "HomePage"가 기본값이라는 의도가 상위 함수에서
+                            명확하게 보임
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>함수 재사용성</td>
+                        <td>
+                            default 값을 다르게 해서 다른 곳에서도 재사용 가능
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>책임 분리</td>
+                        <td>
+                            기본값 결정은 상위 계층의 책임, 로직은 하위 계층의
+                            책임
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="rule-box success">
+                <strong>핵심 원칙 —</strong> 상수의 위치가 책임의 위치다.
+                기본값을 결정하는 권한은 호출하는 상위 계층에 있어야 한다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 2: 요약
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page2">
+            <div class="section-header">
+                <h2>Ch.05 핵심 원칙 요약</h2>
+                <p>상수의 위치가 곧 책임의 위치다</p>
+            </div>
+
+            <div class="arrow-flow">
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-blue);
+                        color: var(--accent-blue);
+                    "
+                >
+                    HandleRequest<br />("HomePage")
+                </div>
+                <div class="flow-arrow">→ 전달</div>
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-green);
+                        color: var(--accent-green);
+                    "
+                >
+                    GetPageNameOrDefault<br />(defaultPageName)
+                </div>
+                <div class="flow-arrow">→ 반환</div>
+                <div
+                    class="flow-step"
+                    style="
+                        border-color: var(--accent-yellow);
+                        color: var(--accent-yellow);
+                    "
+                >
+                    pageName
+                </div>
+            </div>
+
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="icon">📍</div>
+                    <h4 style="color: var(--accent-blue)">
+                        상수는 위로 올려라
+                    </h4>
+                    <p>
+                        하드코딩된 상수는 상위 호출자에게 파라미터로 위임하라.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">♻️</div>
+                    <h4 style="color: var(--accent-green)">
+                        재사용 가능한 함수
+                    </h4>
+                    <p>
+                        파라미터로 받으면 어디서든 다른 기본값으로 재사용
+                        가능하다.
+                    </p>
+                </div>
+                <div class="summary-item">
+                    <div class="icon">🎯</div>
+                    <h4 style="color: var(--accent-purple)">책임의 위치</h4>
+                    <p>
+                        무엇이 기본값인지 아는 건 상위 계층, 어떻게 처리하는지는
+                        하위 계층.
+                    </p>
+                </div>
+            </div>
+
+            <div class="rule-box">
+                <strong>체크 —</strong> 함수 내부에 하드코딩된 문자열/숫자가
+                보이면 "이걸 파라미터로 올릴 수 있을까?" 를 먼저 물어라.
+            </div>
+        </div>
+
+        <script>
+            function showPage(idx) {
+                document.querySelectorAll(".page").forEach((p, i) => {
+                    p.classList.toggle("active", i === idx);
+                });
+                document.querySelectorAll("nav button").forEach((b, i) => {
+                    b.classList.toggle("active", i === idx);
+                });
+            }
+        </script>
+    </body>
+</html>

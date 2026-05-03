@@ -1,0 +1,1075 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Clean Code Ch.06 — 객체와 자료 구조</title>
+        <link
+            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Syne:wght@400;600;700;800&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            :root {
+                --bg: #0d0f14;
+                --surface: #13161e;
+                --surface2: #1a1e2a;
+                --border: #252a38;
+                --text: #d4daf0;
+                --muted: #5a6280;
+                --accent-red: #ff4d6d;
+                --accent-green: #39d98a;
+                --accent-blue: #4d9fff;
+                --accent-yellow: #ffcc00;
+                --accent-purple: #a78bfa;
+                --font-code: "JetBrains Mono", monospace;
+                --font-ui: "Syne", sans-serif;
+            }
+
+            body {
+                background: var(--bg);
+                color: var(--text);
+                font-family: var(--font-ui);
+                min-height: 100vh;
+                overflow-x: hidden;
+            }
+
+            /* ── Header ── */
+            header {
+                padding: 40px 48px 32px;
+                border-bottom: 1px solid var(--border);
+                display: flex;
+                align-items: flex-end;
+                gap: 24px;
+                background: linear-gradient(180deg, #0d0f18 0%, var(--bg) 100%);
+            }
+            .chapter-tag {
+                font-family: var(--font-code);
+                font-size: 11px;
+                color: var(--accent-blue);
+                background: rgba(77, 159, 255, 0.1);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+                padding: 4px 10px;
+                border-radius: 4px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            header h1 {
+                font-size: 32px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                line-height: 1;
+            }
+            header h1 span {
+                color: var(--accent-blue);
+            }
+
+            /* ── Nav Tabs ── */
+            nav {
+                display: flex;
+                gap: 0;
+                padding: 0 48px;
+                background: var(--surface);
+                border-bottom: 1px solid var(--border);
+                overflow-x: auto;
+            }
+            nav button {
+                font-family: var(--font-ui);
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                background: none;
+                border: none;
+                border-bottom: 2px solid transparent;
+                padding: 16px 20px;
+                cursor: pointer;
+                white-space: nowrap;
+                transition:
+                    color 0.2s,
+                    border-color 0.2s;
+                letter-spacing: 0.02em;
+            }
+            nav button.active {
+                color: var(--text);
+                border-bottom-color: var(--accent-blue);
+            }
+            nav button:hover:not(.active) {
+                color: var(--text);
+            }
+
+            /* ── Content ── */
+            .page {
+                display: none;
+                padding: 40px 48px;
+                max-width: 1100px;
+                margin: 0 auto;
+            }
+            .page.active {
+                display: block;
+                animation: fadeUp 0.3s ease;
+            }
+            @keyframes fadeUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            /* ── Section Header ── */
+            .section-header {
+                margin-bottom: 32px;
+            }
+            .section-header h2 {
+                font-size: 26px;
+                font-weight: 800;
+                letter-spacing: -0.03em;
+                margin-bottom: 8px;
+            }
+            .section-header p {
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.6;
+            }
+
+            /* ── Cards ── */
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
+            .card-title {
+                font-size: 12px;
+                font-weight: 700;
+                letter-spacing: 0.1em;
+                text-transform: uppercase;
+                margin-bottom: 16px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .badge {
+                font-family: var(--font-code);
+                font-size: 10px;
+                padding: 2px 8px;
+                border-radius: 3px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+            }
+            .badge-bad {
+                background: rgba(255, 77, 109, 0.15);
+                color: var(--accent-red);
+                border: 1px solid rgba(255, 77, 109, 0.3);
+            }
+            .badge-good {
+                background: rgba(57, 217, 138, 0.12);
+                color: var(--accent-green);
+                border: 1px solid rgba(57, 217, 138, 0.25);
+            }
+            .badge-info {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+                border: 1px solid rgba(77, 159, 255, 0.25);
+            }
+            .badge-warn {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+                border: 1px solid rgba(255, 204, 0, 0.25);
+            }
+
+            /* ── Code Block ── */
+            pre {
+                font-family: var(--font-code);
+                font-size: 12.5px;
+                line-height: 1.7;
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 20px;
+                overflow-x: auto;
+                white-space: pre;
+            }
+            .kw {
+                color: #c792ea;
+            }
+            .fn {
+                color: #82aaff;
+            }
+            .str {
+                color: #c3e88d;
+            }
+            .cm {
+                color: #546e7a;
+                font-style: italic;
+            }
+            .tp {
+                color: #ffcb6b;
+            }
+            .op {
+                color: #89ddff;
+            }
+            .num {
+                color: #f78c6c;
+            }
+            .highlight {
+                background: rgba(255, 77, 109, 0.12);
+                border-left: 2px solid var(--accent-red);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+            .highlight-good {
+                background: rgba(57, 217, 138, 0.08);
+                border-left: 2px solid var(--accent-green);
+                margin: 0 -20px;
+                padding: 2px 20px;
+                display: block;
+            }
+
+            /* ── Two Column ── */
+            .two-col {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+            @media (max-width: 768px) {
+                .two-col {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            /* ── Concept Pill ── */
+            .concept-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 16px;
+            }
+            .concept-pill {
+                font-size: 12px;
+                font-weight: 600;
+                padding: 6px 14px;
+                border-radius: 20px;
+                border: 1px solid;
+                cursor: default;
+                transition: transform 0.15s;
+            }
+            .concept-pill:hover {
+                transform: scale(1.05);
+            }
+            .pill-red {
+                color: var(--accent-red);
+                border-color: rgba(255, 77, 109, 0.35);
+                background: rgba(255, 77, 109, 0.08);
+            }
+            .pill-blue {
+                color: var(--accent-blue);
+                border-color: rgba(77, 159, 255, 0.35);
+                background: rgba(77, 159, 255, 0.08);
+            }
+            .pill-green {
+                color: var(--accent-green);
+                border-color: rgba(57, 217, 138, 0.35);
+                background: rgba(57, 217, 138, 0.08);
+            }
+            .pill-purple {
+                color: var(--accent-purple);
+                border-color: rgba(167, 139, 250, 0.35);
+                background: rgba(167, 139, 250, 0.08);
+            }
+            .pill-yellow {
+                color: var(--accent-yellow);
+                border-color: rgba(255, 204, 0, 0.35);
+                background: rgba(255, 204, 0, 0.08);
+            }
+
+            /* ── Rule Box ── */
+            .rule-box {
+                border-left: 3px solid var(--accent-blue);
+                padding: 14px 18px;
+                background: rgba(77, 159, 255, 0.06);
+                border-radius: 0 8px 8px 0;
+                font-size: 13.5px;
+                line-height: 1.65;
+                margin: 16px 0;
+            }
+            .rule-box.warn {
+                border-color: var(--accent-yellow);
+                background: rgba(255, 204, 0, 0.06);
+            }
+            .rule-box.danger {
+                border-color: var(--accent-red);
+                background: rgba(255, 77, 109, 0.06);
+            }
+            .rule-box.success {
+                border-color: var(--accent-green);
+                background: rgba(57, 217, 138, 0.06);
+            }
+            .rule-box strong {
+                color: var(--accent-yellow);
+            }
+
+            /* ── Arrow ── */
+            .arrow-flow {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin: 20px 0;
+                flex-wrap: wrap;
+            }
+            .flow-step {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 12px 18px;
+                font-size: 13px;
+                font-weight: 600;
+                text-align: center;
+                min-width: 120px;
+            }
+            .flow-arrow {
+                color: var(--muted);
+                font-size: 18px;
+            }
+
+            /* ── Pattern Diagram ── */
+            .diagram {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 28px;
+                margin: 20px 0;
+            }
+            .diagram-title {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 20px;
+                font-family: var(--font-code);
+            }
+            .class-box {
+                display: inline-flex;
+                flex-direction: column;
+                border: 1px solid;
+                border-radius: 6px;
+                overflow: hidden;
+                font-family: var(--font-code);
+                font-size: 12px;
+                min-width: 160px;
+            }
+            .class-header {
+                padding: 8px 14px;
+                font-weight: 700;
+                font-size: 11px;
+                letter-spacing: 0.05em;
+            }
+            .class-body {
+                padding: 10px 14px;
+                line-height: 1.9;
+            }
+            .class-abstract {
+                border-color: var(--accent-purple);
+            }
+            .class-abstract .class-header {
+                background: rgba(167, 139, 250, 0.15);
+                color: var(--accent-purple);
+            }
+            .class-concrete {
+                border-color: var(--accent-blue);
+            }
+            .class-concrete .class-header {
+                background: rgba(77, 159, 255, 0.12);
+                color: var(--accent-blue);
+            }
+            .class-factory {
+                border-color: var(--accent-yellow);
+            }
+            .class-factory .class-header {
+                background: rgba(255, 204, 0, 0.12);
+                color: var(--accent-yellow);
+            }
+
+            .uml-row {
+                display: flex;
+                align-items: flex-start;
+                gap: 16px;
+                flex-wrap: wrap;
+            }
+            .uml-group {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .uml-arrow {
+                display: flex;
+                align-items: center;
+                padding-top: 28px;
+                color: var(--accent-green);
+                font-size: 22px;
+            }
+
+            /* ── Summary Card ── */
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                gap: 16px;
+                margin-top: 8px;
+            }
+            .summary-item {
+                background: var(--surface2);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 20px;
+            }
+            .summary-item .icon {
+                font-size: 22px;
+                margin-bottom: 10px;
+            }
+            .summary-item h4 {
+                font-size: 13px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .summary-item p {
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.6;
+            }
+
+            /* ── Callout ── */
+            .callout {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 16px;
+                background: var(--surface2);
+                border-radius: 8px;
+                margin: 12px 0;
+            }
+            .callout .icon {
+                font-size: 18px;
+                flex-shrink: 0;
+                margin-top: 1px;
+            }
+            .callout p {
+                font-size: 13px;
+                line-height: 1.65;
+                color: var(--text);
+            }
+            .callout p strong {
+                color: var(--accent-yellow);
+            }
+
+            hr {
+                border: none;
+                border-top: 1px solid var(--border);
+                margin: 28px 0;
+            }
+
+            /* ── Table ── */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+                margin: 16px 0;
+            }
+            th {
+                background: var(--surface2);
+                padding: 10px 14px;
+                text-align: left;
+                font-size: 11px;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+                border-bottom: 1px solid var(--border);
+            }
+            td {
+                padding: 10px 14px;
+                border-bottom: 1px solid rgba(37, 42, 56, 0.5);
+                line-height: 1.5;
+            }
+            td strong {
+                color: var(--accent-yellow);
+            }
+            code {
+                font-family: var(--font-code);
+                font-size: 12px;
+                background: var(--surface2);
+                padding: 2px 6px;
+                border-radius: 3px;
+            }
+        </style>
+    </head>
+    <body>
+        <header>
+            <div>
+                <div class="chapter-tag">Clean Code · Ch.06</div>
+            </div>
+            <h1>객체와 <span>자료 구조</span></h1>
+        </header>
+
+        <nav>
+            <button class="active" onclick="showPage(0)">① 자료 추상화</button>
+            <button onclick="showPage(1)">② 전략 패턴</button>
+            <button onclick="showPage(2)">③ OOP vs 절차적</button>
+            <button onclick="showPage(3)">④ Visitor Pattern</button>
+            <button onclick="showPage(4)">⑤ 디미터 법칙</button>
+            <button onclick="showPage(5)">⑥ DTO</button>
+        </nav>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 0: 자료 추상화
+══════════════════════════════════════════════════ -->
+        <div class="page active" id="page0">
+            <div class="section-header">
+                <h2>자료 추상화</h2>
+                <p>구현을 숨기고 추상적인 인터페이스로 자료를 표현하라.</p>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-bad"
+                            >❌ 구체적인 Point 클래스</span
+                        >
+                    </div>
+                    <pre><span class="kw">public class</span> <span class="tp">Point</span> {
+  <span class="kw">public double</span> x;
+  <span class="kw">public double</span> y;
+}</pre>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="badge badge-good"
+                            >✅ 추상적인 Point 인터페이스</span
+                        >
+                    </div>
+                    <pre><span class="kw">public interface</span> <span class="tp">IPoint</span> {
+  <span class="kw">double</span> <span class="fn">getX</span>();
+  <span class="kw">double</span> <span class="fn">getY</span>();
+  <span class="kw">void</span> <span class="fn">setCartesian</span>(<span class="kw">double</span> x, <span class="kw">double</span> y);
+  <span class="kw">double</span> <span class="fn">getR</span>();
+  <span class="kw">double</span> <span class="fn">getTheta</span>();
+  <span class="kw">void</span> <span class="fn">setPolar</span>(<span class="kw">double</span> r, <span class="kw">double</span> theta);
+}</pre>
+                </div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>특성</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>구현 캡슐화</strong></td>
+                        <td>사용자는 내부가 직각좌표인지 극좌표인지 모름</td>
+                    </tr>
+                    <tr>
+                        <td><strong>변경 유연성</strong></td>
+                        <td>추후에 PolarPoint, SphericalPoint로 교체 가능</td>
+                    </tr>
+                    <tr>
+                        <td><strong>추상적 의미</strong></td>
+                        <td>"좌표"라는 의미로 다룸, 수학적 개념과 맞음</td>
+                    </tr>
+                    <tr>
+                        <td><strong>SRP/OCP 만족</strong></td>
+                        <td>구현은 바꿀 수 있으나 인터페이스는 안정적 유지</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info">C# 구현 예시</span>
+                    CartesianPoint
+                </div>
+                <pre><span class="kw">public class</span> <span class="tp">CartesianPoint</span> : <span class="tp">IPoint</span>
+{
+    <span class="kw">private double</span> _x, _y;
+    <span class="kw">public double</span> <span class="fn">GetX</span>() <span class="op">=></span> _x;
+    <span class="kw">public double</span> <span class="fn">GetY</span>() <span class="op">=></span> _y;
+    <span class="kw">public void</span> <span class="fn">SetCartesian</span>(<span class="kw">double</span> x, <span class="kw">double</span> y) { _x <span class="op">=</span> x; _y <span class="op">=</span> y; }
+    <span class="kw">public double</span> <span class="fn">GetR</span>() <span class="op">=></span> <span class="tp">Math</span>.<span class="fn">Sqrt</span>(_x <span class="op">*</span> _x <span class="op">+</span> _y <span class="op">*</span> _y);
+    <span class="kw">public double</span> <span class="fn">GetTheta</span>() <span class="op">=></span> <span class="tp">Math</span>.<span class="fn">Atan2</span>(_y, _x);
+    <span class="kw">public void</span> <span class="fn">SetPolar</span>(<span class="kw">double</span> r, <span class="kw">double</span> theta)
+    {
+        _x <span class="op">=</span> r <span class="op">*</span> <span class="tp">Math</span>.<span class="fn">Cos</span>(theta);
+        _y <span class="op">=</span> r <span class="op">*</span> <span class="tp">Math</span>.<span class="fn">Sin</span>(theta);
+    }
+}</pre>
+            </div>
+
+            <div class="rule-box success">
+                <strong>핵심 —</strong> 자료를 세세하게 공개하기보다 추상적인
+                개념으로 표현하라. 인터페이스나 조회/설정 함수만으로는 추상화가
+                이루어지지 않는다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 1: 전략 패턴
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page1">
+            <div class="section-header">
+                <h2>전략 패턴과 자료 추상화</h2>
+                <p>
+                    런타임에 알고리즘(또는 내부 구조)을 바꾸고 싶을 때 사용하는
+                    패턴.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info"
+                        >ICoordinateStrategy 인터페이스</span
+                    >
+                </div>
+                <pre><span class="kw">public interface</span> <span class="tp">ICoordinateStrategy</span>
+{
+    <span class="kw">double</span> <span class="fn">GetX</span>();
+    <span class="kw">double</span> <span class="fn">GetY</span>();
+    <span class="kw">void</span> <span class="fn">SetCartesian</span>(<span class="kw">double</span> x, <span class="kw">double</span> y);
+    <span class="kw">void</span> <span class="fn">SetPolar</span>(<span class="kw">double</span> r, <span class="kw">double</span> theta);
+}</pre>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">직각 좌표 전략</div>
+                    <pre><span class="kw">public class</span> <span class="tp">CartesianCoordinate</span> : <span class="tp">ICoordinateStrategy</span>
+{
+    <span class="kw">private double</span> _x, _y;
+    <span class="kw">public double</span> <span class="fn">GetX</span>() <span class="op">=></span> _x;
+    <span class="kw">public double</span> <span class="fn">GetY</span>() <span class="op">=></span> _y;
+    <span class="kw">public void</span> <span class="fn">SetCartesian</span>(<span class="kw">double</span> x, <span class="kw">double</span> y) { _x <span class="op">=</span> x; _y <span class="op">=</span> y; }
+    <span class="kw">public void</span> <span class="fn">SetPolar</span>(<span class="kw">double</span> r, <span class="kw">double</span> theta)
+    {
+        _x <span class="op">=</span> r <span class="op">*</span> <span class="tp">Math</span>.<span class="fn">Cos</span>(theta);
+        _y <span class="op">=</span> r <span class="op">*</span> <span class="tp">Math</span>.<span class="fn">Sin</span>(theta);
+    }
+}</pre>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">극 좌표 전략</div>
+                    <pre><span class="kw">public class</span> <span class="tp">PolarCoordinate</span> : <span class="tp">ICoordinateStrategy</span>
+{
+    <span class="kw">private double</span> _r, _theta;
+    <span class="kw">public double</span> <span class="fn">GetX</span>() <span class="op">=></span> _r <span class="op">*</span> <span class="tp">Math</span>.<span class="fn">Cos</span>(_theta);
+    <span class="kw">public double</span> <span class="fn">GetY</span>() <span class="op">=></span> _r <span class="op">*</span> <span class="tp">Math</span>.<span class="fn">Sin</span>(_theta);
+    <span class="kw">public void</span> <span class="fn">SetCartesian</span>(<span class="kw">double</span> x, <span class="kw">double</span> y)
+    {
+        _r <span class="op">=</span> <span class="tp">Math</span>.<span class="fn">Sqrt</span>(x <span class="op">*</span> x <span class="op">+</span> y <span class="op">*</span> y);
+        _theta <span class="op">=</span> <span class="tp">Math</span>.<span class="fn">Atan2</span>(y, x);
+    }
+    <span class="kw">public void</span> <span class="fn">SetPolar</span>(<span class="kw">double</span> r, <span class="kw">double</span> theta) { _r <span class="op">=</span> r; _theta <span class="op">=</span> theta; }
+}</pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">사용하는 쪽 — 컨텍스트</div>
+                <pre><span class="kw">public class</span> <span class="tp">Point</span>
+{
+    <span class="kw">private</span> <span class="tp">ICoordinateStrategy</span> _coordinate;
+    <span class="kw">public</span> <span class="fn">Point</span>(<span class="tp">ICoordinateStrategy</span> coordinate) { _coordinate <span class="op">=</span> coordinate; }
+    <span class="kw">public double</span> X <span class="op">=></span> _coordinate.<span class="fn">GetX</span>();
+    <span class="kw">public double</span> Y <span class="op">=></span> _coordinate.<span class="fn">GetY</span>();
+    <span class="kw">public void</span> <span class="fn">SetCartesian</span>(<span class="kw">double</span> x, <span class="kw">double</span> y) <span class="op">=></span> _coordinate.<span class="fn">SetCartesian</span>(x, y);
+    <span class="kw">public void</span> <span class="fn">SetPolar</span>(<span class="kw">double</span> r, <span class="kw">double</span> theta) <span class="op">=></span> _coordinate.<span class="fn">SetPolar</span>(r, theta);
+}</pre>
+            </div>
+
+            <div class="callout">
+                <span class="icon">🔌</span>
+                <p>
+                    내부가 Cartesian인지 Polar인지
+                    <strong>모른 채 사용 가능</strong> — 자료 추상화 완벽 달성.
+                </p>
+            </div>
+            <div class="callout">
+                <span class="icon">🔄</span>
+                <p>
+                    런타임에 전략만 바꿔 끼우면 됨 →
+                    <strong>유연성, 테스트성 향상</strong>
+                </p>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 2: OOP vs 절차적
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page2">
+            <div class="section-header">
+                <h2>디자인 트레이드오프: OOP vs 절차적</h2>
+                <p>어느 쪽이 옳은가가 아니라, 언제 무엇을 쓸지의 문제다.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info"
+                        >자료 구조: 데이터는 공개, 함수는 외부에서</span
+                    >
+                    절차적 방식
+                </div>
+                <pre><span class="kw">public class</span> <span class="tp">Square</span> { <span class="kw">public</span> <span class="tp">Point</span> TopLeft; <span class="kw">public double</span> Side; }
+<span class="kw">public class</span> <span class="tp">Rectangle</span> { <span class="kw">public</span> <span class="tp">Point</span> TopLeft; <span class="kw">public double</span> Height; <span class="kw">public double</span> Width; }
+<span class="kw">public class</span> <span class="tp">Circle</span> { <span class="kw">public</span> <span class="tp">Point</span> Center; <span class="kw">public double</span> Radius; }</pre>
+                <pre
+                    style="margin-top: 12px"
+                ><span class="kw">public class</span> <span class="tp">Geometry</span>
+{
+    <span class="kw">public double</span> <span class="fn">Area</span>(<span class="kw">object</span> shape)
+    {
+        <span class="kw">return</span> shape <span class="kw">switch</span>
+        {
+            <span class="tp">Square</span> s   <span class="op">=></span> s.Side <span class="op">*</span> s.Side,
+            <span class="tp">Rectangle</span> r <span class="op">=></span> r.Height <span class="op">*</span> r.Width,
+            <span class="tp">Circle</span> c   <span class="op">=></span> <span class="tp">Math</span>.PI <span class="op">*</span> c.Radius <span class="op">*</span> c.Radius,
+            _           <span class="op">=></span> <span class="kw">throw new</span> <span class="tp">ArgumentException</span>(<span class="str">"Unknown shape"</span>)
+        };
+    }
+}</pre>
+            </div>
+
+            <div class="callout">
+                <span class="icon">⚠️</span>
+                <p>
+                    <strong>자료구조 특성 —</strong> 기존 자료 구조를 변경하지
+                    않으면서 새 함수를 추가하기 쉽다. 반면, 새로운 자료 구조를
+                    추가하려면 모든 함수를 고쳐야 한다.
+                </p>
+            </div>
+
+            <hr />
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">✅ 추상 인터페이스</span>
+                    객체 지향 방식
+                </div>
+                <pre><span class="kw">public interface</span> <span class="tp">IShape</span> { <span class="kw">double</span> <span class="fn">Area</span>(); }
+
+<span class="kw">public class</span> <span class="tp">Square</span> : <span class="tp">IShape</span>
+{
+    <span class="kw">private double</span> _side;
+    <span class="kw">public</span> <span class="fn">Square</span>(<span class="tp">Point</span> topLeft, <span class="kw">double</span> side) { _side <span class="op">=</span> side; }
+    <span class="kw">public double</span> <span class="fn">Area</span>() <span class="op">=></span> _side <span class="op">*</span> _side;
+}
+<span class="kw">public class</span> <span class="tp">Circle</span> : <span class="tp">IShape</span>
+{
+    <span class="kw">private double</span> _radius;
+    <span class="kw">public</span> <span class="fn">Circle</span>(<span class="tp">Point</span> center, <span class="kw">double</span> radius) { _radius <span class="op">=</span> radius; }
+    <span class="kw">public double</span> <span class="fn">Area</span>() <span class="op">=></span> <span class="tp">Math</span>.PI <span class="op">*</span> _radius <span class="op">*</span> _radius;
+}</pre>
+            </div>
+
+            <div class="callout">
+                <span class="icon">✅</span>
+                <p>
+                    <strong>객체 특성 —</strong> 기존 함수를 변경하지 않으면서
+                    새 클래스를 추가하기 쉽다. 반면, 새로운 함수(동작)를
+                    추가하려면 모든 클래스를 고쳐야 한다.
+                </p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>항목</th>
+                        <th>절차적 (자료 중심)</th>
+                        <th>객체 지향 (다형성)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>새 함수 추가</strong></td>
+                        <td>✅ 쉬움 — Geometry에만 추가</td>
+                        <td>❌ 어려움 — 모든 클래스 수정</td>
+                    </tr>
+                    <tr>
+                        <td><strong>새 타입 추가</strong></td>
+                        <td>❌ 어려움 — 모든 함수 수정</td>
+                        <td>✅ 쉬움 — 새 클래스만 추가</td>
+                    </tr>
+                    <tr>
+                        <td><strong>적합한 경우</strong></td>
+                        <td>함수가 자주 추가되는 경우</td>
+                        <td>타입이 자주 추가되는 경우</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="rule-box">
+                <strong>선택 기준 —</strong> 새로운 자료 타입(클래스)이 필요하면
+                OOP, 새로운 함수(동작)가 필요하면 절차적 방식이 유리하다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 3: Visitor Pattern
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page3">
+            <div class="section-header">
+                <h2>Visitor Pattern</h2>
+                <p>
+                    객체 구조를 변경하지 않고 새로운 연산(동작)을 추가하는 패턴.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">IShape + IShapeVisitor</div>
+                <pre><span class="kw">public interface</span> <span class="tp">IShape</span> { <span class="kw">double</span> <span class="fn">Accept</span>(<span class="tp">IShapeVisitor</span> visitor); }
+
+<span class="kw">public interface</span> <span class="tp">IShapeVisitor</span>
+{
+    <span class="kw">double</span> <span class="fn">Visit</span>(<span class="tp">Square</span> square);
+    <span class="kw">double</span> <span class="fn">Visit</span>(<span class="tp">Rectangle</span> rectangle);
+    <span class="kw">double</span> <span class="fn">Visit</span>(<span class="tp">Circle</span> circle);
+}</pre>
+            </div>
+
+            <div class="card">
+                <div class="card-title">도형 클래스들</div>
+                <pre><span class="kw">public class</span> <span class="tp">Square</span> : <span class="tp">IShape</span>
+{
+    <span class="kw">public double</span> Side { <span class="kw">get</span>; }
+    <span class="kw">public</span> <span class="fn">Square</span>(<span class="kw">double</span> side) <span class="op">=></span> Side <span class="op">=</span> side;
+    <span class="kw">public double</span> <span class="fn">Accept</span>(<span class="tp">IShapeVisitor</span> visitor) <span class="op">=></span> visitor.<span class="fn">Visit</span>(<span class="kw">this</span>);
+}
+<span class="kw">public class</span> <span class="tp">Circle</span> : <span class="tp">IShape</span>
+{
+    <span class="kw">public double</span> Radius { <span class="kw">get</span>; }
+    <span class="kw">public</span> <span class="fn">Circle</span>(<span class="kw">double</span> radius) <span class="op">=></span> Radius <span class="op">=</span> radius;
+    <span class="kw">public double</span> <span class="fn">Accept</span>(<span class="tp">IShapeVisitor</span> visitor) <span class="op">=></span> visitor.<span class="fn">Visit</span>(<span class="kw">this</span>);
+}</pre>
+            </div>
+
+            <div class="two-col">
+                <div class="card">
+                    <div class="card-title">AreaVisitor</div>
+                    <pre><span class="kw">public class</span> <span class="tp">AreaVisitor</span> : <span class="tp">IShapeVisitor</span>
+{
+    <span class="kw">public double</span> <span class="fn">Visit</span>(<span class="tp">Square</span> s) <span class="op">=></span> s.Side <span class="op">*</span> s.Side;
+    <span class="kw">public double</span> <span class="fn">Visit</span>(<span class="tp">Rectangle</span> r) <span class="op">=></span> r.Width <span class="op">*</span> r.Height;
+    <span class="kw">public double</span> <span class="fn">Visit</span>(<span class="tp">Circle</span> c) <span class="op">=></span> <span class="tp">Math</span>.PI <span class="op">*</span> c.Radius <span class="op">*</span> c.Radius;
+}</pre>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">PerimeterVisitor</div>
+                    <pre><span class="kw">public class</span> <span class="tp">PerimeterVisitor</span> : <span class="tp">IShapeVisitor</span>
+{
+    <span class="kw">public double</span> <span class="fn">Visit</span>(<span class="tp">Square</span> s) <span class="op">=></span> <span class="num">4</span> <span class="op">*</span> s.Side;
+    <span class="kw">public double</span> <span class="fn">Visit</span>(<span class="tp">Rectangle</span> r) <span class="op">=></span> <span class="num">2</span> <span class="op">*</span> (r.Width <span class="op">+</span> r.Height);
+    <span class="kw">public double</span> <span class="fn">Visit</span>(<span class="tp">Circle</span> c) <span class="op">=></span> <span class="num">2</span> <span class="op">*</span> <span class="tp">Math</span>.PI <span class="op">*</span> c.Radius;
+}</pre>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">사용 예시</div>
+                <pre><span class="kw">var</span> shapes <span class="op">=</span> <span class="kw">new</span> <span class="tp">List</span>&lt;<span class="tp">IShape</span>&gt; { <span class="kw">new</span> <span class="fn">Square</span>(<span class="num">5</span>), <span class="kw">new</span> <span class="fn">Rectangle</span>(<span class="num">4</span>, <span class="num">6</span>), <span class="kw">new</span> <span class="fn">Circle</span>(<span class="num">3</span>) };
+<span class="kw">var</span> areaVisitor <span class="op">=</span> <span class="kw">new</span> <span class="fn">AreaVisitor</span>();
+<span class="kw">foreach</span> (<span class="kw">var</span> shape <span class="kw">in</span> shapes)
+    <span class="tp">Console</span>.<span class="fn">WriteLine</span>(<span class="str">$"Area: {shape.Accept(areaVisitor)}"</span>);</pre>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>항목</th>
+                        <th>설명</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>새 도형 추가</strong></td>
+                        <td>Visitor에 Visit(NewShape) 추가 필요 → 약점</td>
+                    </tr>
+                    <tr>
+                        <td><strong>새 동작 추가</strong></td>
+                        <td>
+                            Visitor 클래스 하나 추가로 끝 (기존 도형 손대지
+                            않음) ✅
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>OCP 만족</strong></td>
+                        <td>동작(방문자)은 열려 있고, 도형 구조는 닫혀 있음</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="rule-box success">
+                <strong>Visitor의 장점 —</strong> 새로운 연산이 자주 추가되고
+                클래스 구조는 안정적일 때 가장 유용하다. OOP의 새 함수 추가
+                약점을 보완한다.
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 4: 디미터 법칙
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page4">
+            <div class="section-header">
+                <h2>디미터 법칙 (Law of Demeter)</h2>
+                <p>
+                    모듈은 자신이 조작하는 객체의 속사정을 몰라야 한다. 낯선
+                    사람은 경계하고 친구랑만 놀아라.
+                </p>
+            </div>
+
+            <div class="rule-box warn">
+                <strong>허용 범위 —</strong> 클래스 C의 메서드 f는 다음만 호출할
+                수 있다: (1) 클래스 C 자신, (2) f가 생성한 객체, (3) f의 인수로
+                넘어온 객체, (4) C의 인스턴스 변수에 저장된 객체. 허용된
+                메서드가 반환하는 객체의 메서드는 호출하면 안 된다.
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-bad"
+                        >❌ 기차 충돌 Train Wreck</span
+                    >
+                </div>
+                <pre><span class="kw">readonly</span> <span class="tp">String</span> outputDir <span class="op">=</span> ctxt.<span class="fn">getOptions</span>().<span class="fn">getScratchDir</span>().<span class="fn">getAbsolutePath</span>();</pre>
+                <div class="callout" style="margin-top: 14px">
+                    <span class="icon">⚠️</span>
+                    <p>
+                        여러 객차가 한 줄로 이어진 기차처럼 보인다. ctxt의 내부
+                        구조를 속속들이 알아야 코드가 작동한다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-good">✅ 분리</span>
+                </div>
+                <pre><span class="tp">Options</span> opts <span class="op">=</span> ctxt.<span class="fn">getOptions</span>();
+<span class="tp">File</span> scratchDir <span class="op">=</span> opts.<span class="fn">getScratchDir</span>();
+<span class="kw">readonly</span> <span class="tp">String</span> outputDir <span class="op">=</span> scratchDir.<span class="fn">getAbsolutePath</span>();</pre>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info"
+                        >차라리 자료 구조라면...</span
+                    >
+                </div>
+                <pre><span class="kw">final</span> <span class="tp">String</span> outputDir <span class="op">=</span> ctxt.options.scratchDir.absolutePath;</pre>
+                <div class="callout" style="margin-top: 14px">
+                    <span class="icon">💡</span>
+                    <p>
+                        이것이 <strong>자료 구조</strong>라면 내부 구조를 직접
+                        노출하는 것이 자연스럽다. 디미터 법칙은 객체에 적용되는
+                        법칙이다.
+                    </p>
+                </div>
+            </div>
+
+            <div class="concept-row">
+                <span class="concept-pill pill-yellow">낯선 사람 경계</span>
+                <span class="concept-pill pill-green">친구와만 소통</span>
+                <span class="concept-pill pill-red">기차 충돌 방지</span>
+                <span class="concept-pill pill-blue">결합도 감소</span>
+            </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════
+     PAGE 5: DTO
+══════════════════════════════════════════════════ -->
+        <div class="page" id="page5">
+            <div class="section-header">
+                <h2>DTO와 잡종 객체</h2>
+                <p>
+                    데이터 전달용 객체(DTO)에 비즈니스 로직을 넣으면 잡종 객체가
+                    된다.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-info"
+                        >Active Record 스타일 — 적절한 사용</span
+                    >
+                </div>
+                <pre><span class="kw">public class</span> <span class="tp">User</span>
+{
+    <span class="kw">public int</span> Id { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public string</span> Email { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public string</span> PasswordHash { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="kw">public void</span> <span class="fn">Save</span>() { <span class="tp">Database</span>.<span class="fn">Save</span>(<span class="kw">this</span>); }
+    <span class="kw">public static</span> <span class="tp">User</span>? <span class="fn">Find</span>(<span class="kw">int</span> id) { <span class="kw">return</span> <span class="tp">Database</span>.<span class="fn">FindById</span>&lt;<span class="tp">User</span>&gt;(id); }
+}</pre>
+            </div>
+
+            <div class="card">
+                <div class="card-title">
+                    <span class="badge badge-bad"
+                        >❌ 잡종 객체 — 비즈니스 로직 추가 시</span
+                    >
+                </div>
+                <pre><span class="kw">public class</span> <span class="tp">User</span>
+{
+    <span class="kw">public int</span> Id { <span class="kw">get</span>; <span class="kw">set</span>; }
+    <span class="kw">public string</span> Email { <span class="kw">get</span>; <span class="kw">set</span>; }
+
+    <span class="kw">public void</span> <span class="fn">Save</span>() <span class="op">=></span> <span class="tp">Database</span>.<span class="fn">Save</span>(<span class="kw">this</span>);
+
+    <span class="cm">// ❌ 문제: 비즈니스 로직이 섞임</span>
+<span class="highlight">    <span class="kw">public bool</span> <span class="fn">CanLogin</span>(<span class="tp">DateTime</span> now)
+    {
+        <span class="kw">return</span> Email.<span class="fn">Contains</span>(<span class="str">"@"</span>) <span class="op">&amp;&amp;</span> now.Hour <span class="op">&lt;</span> <span class="num">22</span>;
+    }</span>
+}</pre>
+            </div>
+
+            <div class="callout">
+                <span class="icon">🚨</span>
+                <p>
+                    <strong>잡종 객체의 문제 —</strong> 비즈니스 로직과 DB 저장
+                    책임이 섞여 있다. SRP를 위반하고, 테스트하기 어렵고, 두 가지
+                    이유로 변경된다.
+                </p>
+            </div>
+
+            <div class="rule-box success">
+                <strong>해결 —</strong> 비즈니스 로직은 별도
+                Service/DomainObject로 분리하고, DTO는 순수한 자료 전달 역할만
+                담당하게 하라.
+            </div>
+        </div>
+
+        <script>
+            function showPage(idx) {
+                document.querySelectorAll(".page").forEach((p, i) => {
+                    p.classList.toggle("active", i === idx);
+                });
+                document.querySelectorAll("nav button").forEach((b, i) => {
+                    b.classList.toggle("active", i === idx);
+                });
+            }
+        </script>
+    </body>
+</html>
